@@ -24,7 +24,8 @@ export default function AuthGuard({ children }: { children: ReactNode }) {
         router.replace('/auth/login');
         return;
       }
-      const params = new URLSearchParams({ returnUrl: pathname });
+      // Se conserva la consulta (filtros, pestañas) además de la ruta para volver exactamente al mismo lugar.
+      const params = new URLSearchParams({ returnUrl: `${pathname}${window.location.search}` });
       if (wasAuthenticated.current) params.set('sesion', 'expirada');
       router.replace(`/auth/login?${params.toString()}`);
     }

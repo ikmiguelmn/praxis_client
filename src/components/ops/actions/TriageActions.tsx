@@ -82,7 +82,7 @@ export default function TriageActions(ctx: ActionContext) {
 /** Comparación lado a lado y vinculación formal de duplicados (HU-5.2, KAN-202). */
 function DuplicateComparator({ open, onClose, ctx }: { open: boolean; onClose: () => void; ctx: ActionContext }) {
   const { inc, onDone } = ctx;
-  const candidates = useApiQuery(open ? `duplicados:${inc.id}` : null, () => opsService.posiblesDuplicados(inc.id));
+  const candidates = useApiQuery(open ? `duplicados:${inc.id}` : null, () => opsService.posiblesDuplicados(inc.id), { blocking: false });
   const [selected, setSelected] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const submit = useSubmit();

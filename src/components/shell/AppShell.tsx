@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from 'react';
+import { useLayoutEffect, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -12,7 +12,11 @@ import GlobalSearch from './GlobalSearch';
 import ModuleBar from './ModuleBar';
 import NotificationBell from './NotificationBell';
 import UserMenu from './UserMenu';
+import ThemeToggle from './ThemeToggle';
+import { applyTheme, getTheme } from '@/lib/theme';
 import Toaster from '@/components/ui/Toaster';
+import ConfirmHost from '@/components/ui/ConfirmDialog';
+import PageLoader from '@/components/ui/PageLoader';
 
 function ConnectionChip() {
   const online = useOnline();
@@ -49,6 +53,7 @@ function TopBar() {
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <ConnectionChip />
+          <ThemeToggle />
           <NotificationBell />
           <UserMenu />
         </div>
@@ -79,6 +84,11 @@ function OfflineBanner() {
 
 /** Shell institucional con doble barra superior (HU-2.1, HU-2.2). */
 export default function AppShell({ children }: { children: ReactNode }) {
+  // El tema elegido solo aplica dentro de la aplicación; al salir (login, recuperación) se quita.
+  useLayoutEffect(() => {
+    applyTheme(getTheme());
+    return () => applyTheme(null);
+  }, []);
   const pathname = usePathname();
   const reduceMotion = useReducedMotion();
 
@@ -100,6 +110,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
           {children}
         </motion.main>
         <Toaster />
+        <ConfirmHost />
+        <PageLoader />
       </div>
     </AuthGuard>
   );

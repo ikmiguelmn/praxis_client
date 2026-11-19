@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { authService } from '@/services/authService';
+import { forgetDevice, sessionShouldEnd } from './rememberDevice';
 import { onSessionChange, setActiveRoleHeader } from '@/services/api';
 import type { MenuItem, Profile, RoleCode, SessionResponse } from '@/types/auth';
 
@@ -73,6 +74,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (pending.current) return pending.current;
 
     setStatus('loading');
+    // Sin "Recordar en este equipo": al volver a abrir el navegador se cierra la sesión en el servidor
+    // en lugar de restaurarla con la cookie de refresh.
+    if (sessionShouldEnd()) {
+      pending.current = authService
+        .logout()
+        .catch(() => undefined)
+        .then(() => {
+          setStatus('anonymous');
+          return false;
+        })
+        .finally(() => {
+          pending.current = null;
+        });
+      return pending.current;
+    }
     pending.current = authService
       .restore()
       .then(async ({ usuario }) => {
@@ -111,6 +127,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     setSignedOut(true);
+    forgetDevice();
     try {
       await authService.logout();
     } finally {

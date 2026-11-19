@@ -65,7 +65,8 @@ export function QueryBoundary({
   label?: string;
   children: ReactNode;
 }) {
-  if (loading) return <LoadingState label={label} />;
+  // La carga se muestra con el loader de pantalla completa (PageLoader); aquí solo se reserva el espacio.
+  if (loading) return <div className="min-h-[50vh]" role="status" aria-busy="true" aria-label={label ?? 'Cargando'} />;
   if (error) return <ErrorState message={error} onRetry={onRetry} />;
   return <>{children}</>;
 }

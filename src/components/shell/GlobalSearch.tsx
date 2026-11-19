@@ -33,7 +33,7 @@ export default function GlobalSearch() {
   };
 
   return (
-    <form onSubmit={submit} role="search" className="relative w-full">
+    <form noValidate onSubmit={submit} role="search" className="relative w-full">
       <Search className="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400" aria-hidden="true" />
       <label htmlFor="global-search" className="sr-only">
         Buscar por radicado o descripción
@@ -47,7 +47,7 @@ export default function GlobalSearch() {
         placeholder="Buscar por radicado (TKT-…), aula o tipo de avería"
         className="h-11 w-full rounded-2xl border border-transparent bg-praxis-field pl-11 pr-16 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-praxis-sky focus:bg-white focus:outline-none focus:ring-4 focus:ring-praxis-sky/15"
       />
-      <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-semibold text-slate-400 md:block">
+      <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-[10px] font-semibold text-slate-400 lg:block">
         Ctrl K
       </kbd>
     </form>

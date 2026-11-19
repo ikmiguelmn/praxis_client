@@ -1,6 +1,6 @@
-import { LoadingState } from '@/components/ui/States';
+import FullscreenLoader from '@/components/ui/FullscreenLoader';
 
 /** Transición entre vistas internas con el loader institucional. */
 export default function Loading() {
-  return <LoadingState label="Cargando vista" />;
+  return <FullscreenLoader label="Cargando vista" />;
 }

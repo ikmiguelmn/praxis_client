@@ -210,8 +210,8 @@ function IconBtn({ label, icon, onClick }: { label: string; icon: React.ReactNod
 }
 
 function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose: () => void; onDone: (m: string) => void }) {
-  const especialidades = useApiQuery('admin:especialidades', adminService.especialidades);
-  const roles = useApiQuery('admin:roles', adminService.roles);
+  const especialidades = useApiQuery('admin:especialidades', adminService.especialidades, { blocking: false });
+  const roles = useApiQuery('admin:roles', adminService.roles, { blocking: false });
   const [f, setF] = useState({ nombre: user?.nombre ?? '', email: user?.email ?? '', telefono: user?.telefono ?? '', password: '', motivo: '' });
   const [esp, setEsp] = useState<string[]>(user?.especialidades.map((e) => e.codigo) ?? []);
   const [newRoles, setNewRoles] = useState<RoleCode[]>(['R01']);
@@ -317,7 +317,7 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
 }
 
 function RolesDialog({ user, onClose, onDone }: { user: AdminUser; onClose: () => void; onDone: (m: string) => void }) {
-  const roles = useApiQuery('admin:roles', adminService.roles);
+  const roles = useApiQuery('admin:roles', adminService.roles, { blocking: false });
   const [selected, setSelected] = useState<RoleCode[]>(user.roles.map((r) => r.codigo));
   const [motivo, setMotivo] = useState('');
   const submit = useSubmit();
