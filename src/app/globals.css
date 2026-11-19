@@ -122,11 +122,25 @@ body {
   @page {
     margin: 12mm;
   }
-  body > *:not(.praxis-print-root) {
+  /* Comprobante de radicación: solo mientras se imprime el ticket se oculta el resto de la página. */
+  body.praxis-printing-ticket > *:not(.praxis-print-root) {
     display: none !important;
   }
   body {
     background: #fff !important;
+    color: #0f172a !important;
+  }
+  /* Cualquier otra página (por ejemplo la guía del centro de ayuda): sin barras, avisos ni loaders. */
+  body:not(.praxis-printing-ticket) :is(header.sticky, .praxis-no-print, [role="status"].fixed, [aria-live].fixed, [role="search"]) {
+    display: none !important;
+  }
+  body:not(.praxis-printing-ticket) main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid;
   }
   .praxis-print-root {
     display: block !important;

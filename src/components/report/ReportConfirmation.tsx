@@ -40,12 +40,18 @@ export default function ReportConfirmation({ result, ubicacion, categoria, subca
 
   useEffect(() => {
     if (!printing) return;
-    const done = () => setPrinting(false);
+    // La clase limita el estilo de impresión al ticket; sin ella se imprime la página normal.
+    document.body.classList.add('praxis-printing-ticket');
+    const done = () => {
+      document.body.classList.remove('praxis-printing-ticket');
+      setPrinting(false);
+    };
     window.addEventListener('afterprint', done);
     const frame = requestAnimationFrame(() => window.print());
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('afterprint', done);
+      document.body.classList.remove('praxis-printing-ticket');
     };
   }, [printing]);
 
