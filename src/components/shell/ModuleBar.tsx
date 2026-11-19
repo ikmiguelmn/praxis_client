@@ -28,6 +28,7 @@ export default function ModuleBar() {
   const { menu } = useSession();
   const [megaOpen, setMegaOpen] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
+  const tabsRef = useRef<HTMLUListElement>(null);
   const [tip, setTip] = useState<{ label: string; x: number; y: number } | null>(null);
 
   const showTip = (label: string, target: HTMLElement) => {
@@ -60,6 +61,14 @@ export default function ModuleBar() {
     };
   }, [megaOpen]);
 
+  // En pantallas angostas la fila de accesos se desliza: se lleva el módulo actual a la vista.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      tabsRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: reduceMotion ? 'auto' : 'smooth' });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [pathname, reduceMotion]);
+
   const spring = reduceMotion ? { duration: 0 } : { type: 'spring' as const, stiffness: 420, damping: 34 };
 
   return (
@@ -72,6 +81,7 @@ export default function ModuleBar() {
           onClick={() => setMegaOpen((v) => !v)}
           aria-expanded={megaOpen}
           aria-controls="mega-menu"
+          aria-label={megaOpen ? 'Cerrar módulos' : 'Módulos'}
           className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-xl bg-praxis-navy px-4 text-sm font-semibold text-white shadow-sm shadow-slate-900/20 transition hover:bg-praxis-navy-soft ${
             megaOpen ? 'ring-4 ring-praxis-sky/30' : ''
           }`}
@@ -83,7 +93,7 @@ export default function ModuleBar() {
         <span className="mx-1 hidden h-6 w-px bg-praxis-line sm:block" aria-hidden="true" />
 
         <LayoutGroup id="module-tabs">
-          <ul className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+          <ul ref={tabsRef} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)] pr-6 [scrollbar-width:none]">
             {shortcuts.map((item) => {
               const Icon = moduleIcon(item.icono);
               // Con el menú de módulos abierto la selección pasa al botón "Módulos"; al cerrarlo vuelve aquí.
@@ -135,12 +145,14 @@ export default function ModuleBar() {
         {help && (
           <Link
             href={help.ruta}
-            className={`hidden h-10 shrink-0 items-center gap-2 rounded-xl border px-4 text-sm font-semibold transition md:inline-flex ${
+            aria-label="Centro de ayuda"
+            title="Centro de ayuda"
+            className={`hidden h-10 shrink-0 items-center gap-2 rounded-xl border px-3 text-sm font-semibold transition md:inline-flex lg:px-4 ${
               current?.codigo === 'AYUDA' ? 'border-praxis-blue bg-sky-50 text-sky-900' : 'border-praxis-line bg-white text-slate-600 hover:text-slate-900'
             }`}
           >
             <CircleHelp className="h-4 w-4" aria-hidden="true" />
-            Centro de ayuda
+            <span className="hidden lg:inline">Centro de ayuda</span>
           </Link>
         )}
       </nav>
@@ -175,7 +187,7 @@ export default function ModuleBar() {
             />
             <motion.div
               id="mega-menu"
-              className="absolute inset-x-0 top-full z-50 origin-top rounded-b-[28px] border-b-4 border-praxis-line bg-white shadow-2xl shadow-slate-900/20"
+              className="absolute inset-x-0 top-full z-50 max-h-[calc(100dvh-8.5rem)] origin-top overflow-y-auto overscroll-contain rounded-b-[28px] border-b-4 border-praxis-line bg-white shadow-2xl shadow-slate-900/20"
               initial={{ opacity: 0, scaleY: 0.96 }}
               animate={{ opacity: 1, scaleY: 1 }}
               exit={{ opacity: 0, scaleY: 0.96 }}
