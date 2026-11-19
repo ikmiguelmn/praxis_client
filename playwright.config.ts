@@ -30,15 +30,28 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: '**/integracion/**',
       use: { ...devices['Desktop Chrome'] },
     },
     {
       name: 'firefox',
+      testIgnore: '**/integracion/**',
       use: { ...devices['Desktop Firefox'] },
     },
     {
       name: 'webkit',
+      testIgnore: '**/integracion/**',
       use: { ...devices['Desktop Safari'] },
+    },
+    /**
+     * Integración contra un backend local real (opcional, no corre en CI por defecto).
+     * Requiere PRAXIS_QA_PASSWORD y NEXT_PUBLIC_API_URL apuntando al backend local.
+     * Uso: npx playwright test --project=integracion
+     */
+    {
+      name: 'integracion',
+      testMatch: '**/integracion/**/*.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
 
