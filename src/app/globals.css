@@ -11,7 +11,11 @@
   --font-sans: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Paleta PRAXIS tomada de los mockups de Figma y del logo */
+}
+
+/* Paleta PRAXIS tomada de los mockups de Figma y del logo.
+   Sin "inline" para que las clases usen variables y el modo oscuro pueda redefinirlas. */
+@theme {
   --color-praxis-navy: #0b1b3a;
   --color-praxis-navy-soft: #13274f;
   --color-praxis-blue: #0a65a8;
@@ -101,6 +105,213 @@ body {
   :where(.btn-primary, .btn-dark, .btn-secondary, .btn-warning, .btn-danger, .btn-ghost):focus-visible {
     @apply outline-2 outline-offset-2 outline-praxis-sky;
   }
+}
+
+/* ───────── Modo oscuro ─────────
+   Se activa con la clase .dark en <html> (solo dentro de la aplicación, el login conserva su diseño).
+   Se redefine la paleta para que todas las pantallas se adapten sin cambiar cada componente. */
+html.dark {
+  color-scheme: dark;
+  --surface-card: #111a2e;
+  --color-praxis-surface: #0b1220;
+  --color-praxis-line: #24314b;
+  --color-praxis-field: #17223a;
+  --color-praxis-navy: #1d3461;
+  --color-praxis-navy-soft: #26437a;
+  --color-slate-50: #152036;
+  --color-slate-100: #1b2740;
+  --color-slate-200: #26334f;
+  --color-slate-300: #36445f;
+  --color-slate-400: #7d8ba3;
+  --color-slate-500: #94a3b8;
+  --color-slate-600: #b4c0d2;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-sky-50: color-mix(in oklab, #0ea5e9 14%, var(--surface-card));
+  --color-sky-100: color-mix(in oklab, #0ea5e9 22%, var(--surface-card));
+  --color-sky-200: color-mix(in oklab, #0ea5e9 34%, var(--surface-card));
+  --color-sky-700: #7dd3fc;
+  --color-sky-800: #bae6fd;
+  --color-sky-900: #e0f2fe;
+  --color-emerald-50: color-mix(in oklab, #10b981 14%, var(--surface-card));
+  --color-emerald-100: color-mix(in oklab, #10b981 22%, var(--surface-card));
+  --color-emerald-200: color-mix(in oklab, #10b981 34%, var(--surface-card));
+  --color-emerald-700: #6ee7b7;
+  --color-emerald-800: #a7f3d0;
+  --color-emerald-900: #d1fae5;
+  --color-red-50: color-mix(in oklab, #ef4444 14%, var(--surface-card));
+  --color-red-100: color-mix(in oklab, #ef4444 22%, var(--surface-card));
+  --color-red-200: color-mix(in oklab, #ef4444 34%, var(--surface-card));
+  --color-red-700: #fca5a5;
+  --color-red-800: #fecaca;
+  --color-red-900: #fee2e2;
+  --color-amber-50: color-mix(in oklab, #f59e0b 14%, var(--surface-card));
+  --color-amber-100: color-mix(in oklab, #f59e0b 22%, var(--surface-card));
+  --color-amber-200: color-mix(in oklab, #f59e0b 34%, var(--surface-card));
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+  --color-amber-900: #fef3c7;
+  --color-violet-50: color-mix(in oklab, #8b5cf6 14%, var(--surface-card));
+  --color-violet-100: color-mix(in oklab, #8b5cf6 22%, var(--surface-card));
+  --color-violet-200: color-mix(in oklab, #8b5cf6 34%, var(--surface-card));
+  --color-violet-700: #c4b5fd;
+  --color-violet-800: #ddd6fe;
+  --color-violet-900: #ede9fe;
+  --color-orange-50: color-mix(in oklab, #f97316 14%, var(--surface-card));
+  --color-orange-100: color-mix(in oklab, #f97316 22%, var(--surface-card));
+  --color-orange-200: color-mix(in oklab, #f97316 34%, var(--surface-card));
+  --color-orange-700: #fdba74;
+  --color-orange-800: #fed7aa;
+  --color-orange-900: #ffedd5;
+  --color-cyan-50: color-mix(in oklab, #06b6d4 14%, var(--surface-card));
+  --color-cyan-100: color-mix(in oklab, #06b6d4 22%, var(--surface-card));
+  --color-cyan-200: color-mix(in oklab, #06b6d4 34%, var(--surface-card));
+  --color-cyan-700: #67e8f9;
+  --color-cyan-800: #a5f3fc;
+  --color-cyan-900: #cffafe;
+  --color-rose-50: color-mix(in oklab, #f43f5e 14%, var(--surface-card));
+  --color-rose-100: color-mix(in oklab, #f43f5e 22%, var(--surface-card));
+  --color-rose-200: color-mix(in oklab, #f43f5e 34%, var(--surface-card));
+  --color-rose-700: #fda4af;
+  --color-rose-800: #fecdd3;
+  --color-rose-900: #ffe4e6;
+}
+
+/* Superficies blancas (tarjetas, menús, ventanas) */
+html.dark :is(.bg-white, .card, .btn-secondary):not(.theme-light, .theme-light *) {
+  background-color: var(--surface-card);
+}
+html.dark [class*="bg-white/"]:not(.theme-light, .theme-light *) {
+  background-color: color-mix(in oklab, var(--surface-card) 88%, transparent);
+}
+html.dark :is([class*="hover:bg-white"]:hover, [class*="focus:bg-white"]:focus, .field:focus):not(.theme-light *) {
+  background-color: var(--surface-card);
+}
+html.dark [class~="to-white"]:not(.theme-light *) {
+  --tw-gradient-to: var(--surface-card);
+}
+html.dark [class~="from-white"]:not(.theme-light *) {
+  --tw-gradient-from: var(--surface-card);
+}
+html.dark .btn-secondary:hover {
+  background-color: var(--color-slate-50);
+}
+html.dark .text-praxis-navy {
+  color: var(--color-slate-900);
+}
+html.dark .bg-slate-900 {
+  background-color: #020617;
+}
+html.dark [class*="shadow-slate-9"] {
+  --tw-shadow-color: rgb(0 0 0 / 0.45);
+}
+/* Colores fijos usados en el comprobante y la confirmación de radicación */
+html.dark :is(.text-\[\#0B1B3A\]):not(.theme-light *) {
+  color: var(--color-slate-900);
+}
+html.dark :is(.border-\[\#C9D6E3\], .border-\[\#D7E2ED\]):not(.theme-light *) {
+  border-color: var(--color-praxis-line);
+}
+html.dark :is(.bg-\[\#D7E2ED\], .bg-\[\#F7FAFC\]):not(.theme-light *) {
+  background-color: var(--color-slate-100);
+}
+/* Textos claros sobre fondos de color (por ejemplo, el saludo del panel) conservan su tono en modo oscuro */
+html.dark :is([class~="text-sky-50"], [class*="text-sky-50/"]):not(body) {
+  --color-sky-50: #f0f9ff;
+}
+html.dark :is([class~="text-sky-100"], [class*="text-sky-100/"]):not(body) {
+  --color-sky-100: #e0f2fe;
+}
+html.dark :is([class~="text-sky-200"], [class*="text-sky-200/"]):not(body) {
+  --color-sky-200: #bae6fd;
+}
+html.dark :is([class~="text-emerald-50"], [class*="text-emerald-50/"]):not(body) {
+  --color-emerald-50: #ecfdf5;
+}
+html.dark :is([class~="text-emerald-100"], [class*="text-emerald-100/"]):not(body) {
+  --color-emerald-100: #d1fae5;
+}
+html.dark :is([class~="text-emerald-200"], [class*="text-emerald-200/"]):not(body) {
+  --color-emerald-200: #a7f3d0;
+}
+html.dark :is([class~="text-red-50"], [class*="text-red-50/"]):not(body) {
+  --color-red-50: #fef2f2;
+}
+html.dark :is([class~="text-red-100"], [class*="text-red-100/"]):not(body) {
+  --color-red-100: #fee2e2;
+}
+html.dark :is([class~="text-red-200"], [class*="text-red-200/"]):not(body) {
+  --color-red-200: #fecaca;
+}
+html.dark :is([class~="text-amber-50"], [class*="text-amber-50/"]):not(body) {
+  --color-amber-50: #fffbeb;
+}
+html.dark :is([class~="text-amber-100"], [class*="text-amber-100/"]):not(body) {
+  --color-amber-100: #fef3c7;
+}
+html.dark :is([class~="text-amber-200"], [class*="text-amber-200/"]):not(body) {
+  --color-amber-200: #fde68a;
+}
+html.dark :is([class~="text-violet-50"], [class*="text-violet-50/"]):not(body) {
+  --color-violet-50: #f5f3ff;
+}
+html.dark :is([class~="text-violet-100"], [class*="text-violet-100/"]):not(body) {
+  --color-violet-100: #ede9fe;
+}
+html.dark :is([class~="text-violet-200"], [class*="text-violet-200/"]):not(body) {
+  --color-violet-200: #ddd6fe;
+}
+html.dark :is([class~="text-orange-50"], [class*="text-orange-50/"]):not(body) {
+  --color-orange-50: #fff7ed;
+}
+html.dark :is([class~="text-orange-100"], [class*="text-orange-100/"]):not(body) {
+  --color-orange-100: #ffedd5;
+}
+html.dark :is([class~="text-orange-200"], [class*="text-orange-200/"]):not(body) {
+  --color-orange-200: #fed7aa;
+}
+html.dark :is([class~="text-cyan-50"], [class*="text-cyan-50/"]):not(body) {
+  --color-cyan-50: #ecfeff;
+}
+html.dark :is([class~="text-cyan-100"], [class*="text-cyan-100/"]):not(body) {
+  --color-cyan-100: #cffafe;
+}
+html.dark :is([class~="text-cyan-200"], [class*="text-cyan-200/"]):not(body) {
+  --color-cyan-200: #a5f3fc;
+}
+html.dark :is([class~="text-rose-50"], [class*="text-rose-50/"]):not(body) {
+  --color-rose-50: #fff1f2;
+}
+html.dark :is([class~="text-rose-100"], [class*="text-rose-100/"]):not(body) {
+  --color-rose-100: #ffe4e6;
+}
+html.dark :is([class~="text-rose-200"], [class*="text-rose-200/"]):not(body) {
+  --color-rose-200: #fecdd3;
+}
+html.dark :is([class~="text-slate-50"], [class*="text-slate-50/"]):not(body) {
+  --color-slate-50: #f8fafc;
+}
+html.dark :is([class~="text-slate-100"], [class*="text-slate-100/"]):not(body) {
+  --color-slate-100: #f1f5f9;
+}
+html.dark :is([class~="text-slate-200"], [class*="text-slate-200/"]):not(body) {
+  --color-slate-200: #e2e8f0;
+}
+/* Zonas que siempre se ven claras (el comprobante impreso representa papel) */
+html.dark .theme-light {
+  color-scheme: light;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-praxis-line: #e3e8ef;
 }
 
 /* Barra de tiempo restante de los avisos (Toaster) */

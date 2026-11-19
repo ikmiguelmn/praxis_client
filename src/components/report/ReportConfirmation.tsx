@@ -217,7 +217,7 @@ function Ticket({ result, ubicacion, categoria, subcategoria, reportante, still 
   const ruta = [sede, ...resto.slice(0, -1)].filter(Boolean).join(', ');
 
   return (
-    <article className="praxis-ticket relative text-[#0B1B3A] [filter:drop-shadow(0_12px_16px_rgba(11,27,58,0.14))]" aria-label={`Comprobante del ticket ${result.codigo_ticket}`}>
+    <article className="praxis-ticket theme-light relative text-[#0B1B3A] [filter:drop-shadow(0_12px_16px_rgba(11,27,58,0.14))]" aria-label={`Comprobante del ticket ${result.codigo_ticket}`}>
       <div className="relative rounded-t-md bg-white px-7 pb-6 pt-7">
         <header className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2.5">
