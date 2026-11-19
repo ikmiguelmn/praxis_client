@@ -35,6 +35,28 @@ body {
   font-family: var(--font-montserrat), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Puntero de mano en todo lo que se puede pulsar (Tailwind 4 deja los botones con el cursor por defecto). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="radio"],
+  [role="tab"],
+  a[href],
+  summary,
+  select:not(:disabled),
+  label:has(> input[type="checkbox"]:not(:disabled)),
+  label:has(> input[type="radio"]:not(:disabled)),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled {
+    cursor: not-allowed;
+  }
+}
+
 @layer components {
   .card {
     @apply rounded-2xl border border-praxis-line bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)];

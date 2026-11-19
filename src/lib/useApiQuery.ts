@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { apiErrorMessage, apiStatus } from './apiError';
+import { endPageLoad, startPageLoad } from './pageLoading';
 
 interface QueryState<T> {
   data: T | undefined;
@@ -14,11 +15,20 @@ interface QueryState<T> {
   setData: (updater: T | ((current: T | undefined) => T)) => void;
 }
 
+interface QueryOptions {
+  /**
+   * La primera carga mantiene el loader de pantalla completa hasta que llegan los datos (por defecto).
+   * Usar false en consultas que se hacen dentro de modales o al interactuar con un formulario.
+   */
+  blocking?: boolean;
+}
+
 /**
  * Carga datos de la API y vuelve a pedirlos cuando cambia la clave.
  * Ignora respuestas que llegan tarde si la clave cambió mientras tanto.
  */
-export function useApiQuery<T>(key: string | null, fetcher: () => Promise<T>): QueryState<T> {
+export function useApiQuery<T>(key: string | null, fetcher: () => Promise<T>, { blocking = true }: QueryOptions = {}): QueryState<T> {
+  const loadId = useId();
   const [data, setDataState] = useState<T | undefined>(undefined);
   const [error, setError] = useState('');
   const [status, setStatus] = useState<number | null>(null);
@@ -62,5 +72,13 @@ export function useApiQuery<T>(key: string | null, fetcher: () => Promise<T>): Q
     setDataState((current) => (typeof updater === 'function' ? (updater as (c: T | undefined) => T)(current) : updater));
   }, []);
 
-  return { data, error, status, loading, initialLoading: loading && data === undefined, reload, setData };
+  const initialLoading = loading && data === undefined;
+
+  useEffect(() => {
+    if (!blocking || !initialLoading || key === null) return;
+    startPageLoad(loadId);
+    return () => endPageLoad(loadId);
+  }, [blocking, initialLoading, key, loadId]);
+
+  return { data, error, status, loading, initialLoading, reload, setData };
 }

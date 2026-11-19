@@ -20,7 +20,7 @@ interface DuplicateAlertProps {
 
 /** Alerta de posibles duplicados antes de radicar (HU-3.3, KAN-167). */
 export default function DuplicateAlert({ espacioId, categoriaId, diferente, onDiferenteChange, onMatchesChange, onFollowed }: DuplicateAlertProps) {
-  const { data } = useApiQuery(`coincidencias:${espacioId}:${categoriaId ?? ''}`, () => reportService.coincidencias(espacioId, categoriaId));
+  const { data } = useApiQuery(`coincidencias:${espacioId}:${categoriaId ?? ''}`, () => reportService.coincidencias(espacioId, categoriaId), { blocking: false });
   const [following, setFollowing] = useState<string | null>(null);
   const [error, setError] = useState('');
   const matches = data ?? [];

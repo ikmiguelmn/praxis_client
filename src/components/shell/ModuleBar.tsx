@@ -220,7 +220,7 @@ export default function ModuleBar() {
                                 ) : (
                                   <span className="block text-xs text-slate-500">{MODULE_HINTS[item.codigo] ?? ''}</span>
                                 )}
-                              </span>
+                                </span>
                             </Link>
                           </li>
                         );

@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import OperationalDetailView from '@/components/ops/OperationalDetailView';
-import { LoadingState } from '@/components/ui/States';
+import FullscreenLoader from '@/components/ui/FullscreenLoader';
 
 export const instant = false;
 
@@ -11,7 +11,7 @@ type Params = Promise<{ id: string }>;
 
 export default function Page({ params }: { params: Params }) {
   return (
-    <Suspense fallback={<LoadingState label="Cargando ficha" />}>
+    <Suspense fallback={<FullscreenLoader label="Cargando ficha" />}>
       <Resolve params={params} />
     </Suspense>
   );

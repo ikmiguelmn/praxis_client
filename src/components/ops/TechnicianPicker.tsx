@@ -17,7 +17,7 @@ interface TechnicianPickerProps {
 
 /** Selector de técnico por especialidad con indicador visual de saturación WIP (HU-6.2, KAN-222). */
 export default function TechnicianPicker({ categoriaId, value, onChange, excludeId }: TechnicianPickerProps) {
-  const { data, initialLoading, error } = useApiQuery(`tecnicos:${categoriaId ?? 'todos'}`, () => opsService.tecnicosDisponibles(categoriaId));
+  const { data, initialLoading, error } = useApiQuery(`tecnicos:${categoriaId ?? 'todos'}`, () => opsService.tecnicosDisponibles(categoriaId), { blocking: false });
   const [q, setQ] = useState('');
 
   if (initialLoading) return <LoadingState compact label="Cargando técnicos" />;
