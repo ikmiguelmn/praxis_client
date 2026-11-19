@@ -77,10 +77,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // Sin "Recordar en este equipo": al volver a abrir el navegador se cierra la sesión en el servidor
     // en lugar de restaurarla con la cookie de refresh.
     if (sessionShouldEnd()) {
+      // Sin "recordar": no se restaura con la cookie; se intenta cerrar en servidor y se deja anónimo.
       pending.current = authService
         .logout()
         .catch(() => undefined)
         .then(() => {
+          forgetDevice();
+          setActiveRoleHeader(null);
+          setProfile(null);
+          setMenu([]);
+          setActiveRole(null);
           setStatus('anonymous');
           return false;
         })

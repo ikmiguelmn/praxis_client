@@ -21,7 +21,7 @@ function returnUrlFromLocation(): string | undefined {
 
 export default function LoginForm() {
   const router = useRouter();
-  const { startSession } = useSession();
+  const { startSession, signedOut } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Lo guardado en el navegador se lee sin romper la hidratación; la elección de la casilla tiene prioridad.
@@ -32,17 +32,14 @@ export default function LoginForm() {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
 
-  // Next conserva el estado de las páginas visitadas: al salir del login (por ejemplo, tras entrar) se limpia
-  // el formulario para que al cerrar sesión no vuelva con "Bienvenido" ni con la contraseña escrita.
-  useEffect(
-    () => () => {
-      setState('idle');
-      setPassword('');
-      setError('');
-      setFieldErrors({});
-    },
-    [],
-  );
+  // Next puede restaurar el formulario cacheado tras cerrar sesión; el cleanup de unmount no alcanza.
+  useEffect(() => {
+    if (!signedOut) return;
+    setState('idle');
+    setPassword('');
+    setError('');
+    setFieldErrors({});
+  }, [signedOut]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

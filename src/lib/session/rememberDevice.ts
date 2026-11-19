@@ -34,8 +34,13 @@ export function sessionShouldEnd(): boolean {
   return !remembered && !hasAliveCookie();
 }
 
-/** Al cerrar sesión se olvida la marca del navegador. */
+/** Al cerrar sesión se olvida la marca del navegador y la preferencia de "recordar". */
 export function forgetDevice() {
+  try {
+    localStorage.removeItem(REMEMBER_KEY);
+  } catch {
+    // Sin almacenamiento: basta con caducar la cookie de sesión del navegador.
+  }
   document.cookie = `${ALIVE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
 }
 
