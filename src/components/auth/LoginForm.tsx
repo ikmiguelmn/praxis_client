@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AtSign } from 'lucide-react';
@@ -9,6 +9,9 @@ import { useSession } from '@/lib/session/SessionProvider';
 import { apiErrorMessage, apiFieldErrors } from '@/lib/apiError';
 import { AuthError, AuthField, AuthItem, AuthSubmit } from './AuthMotion';
 import PasswordField from './recovery/PasswordField';
+import { deviceIsRemembered, rememberDevice } from '@/lib/session/rememberDevice';
+
+const noopSubscribe = () => () => {};
 
 /** Solo se aceptan rutas internas como deep-link (HU-1.1). */
 function returnUrlFromLocation(): string | undefined {
@@ -21,6 +24,10 @@ export default function LoginForm() {
   const { startSession } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Lo guardado en el navegador se lee sin romper la hidratación; la elección de la casilla tiene prioridad.
+  const storedRemember = useSyncExternalStore(noopSubscribe, deviceIsRemembered, () => false);
+  const [rememberChoice, setRemember] = useState<boolean | null>(null);
+  const remember = rememberChoice ?? storedRemember;
   const [state, setState] = useState<'idle' | 'loading' | 'success'>('idle');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
@@ -48,10 +55,13 @@ export default function LoginForm() {
 
     setState('loading');
     try {
-      const session = await authService.login({ email: email.trim(), password, return_url: returnUrlFromLocation() });
+      const back = returnUrlFromLocation();
+      // Al backend solo se envía la ruta; la consulta (filtros, pestañas) la conserva el frontend.
+      const session = await authService.login({ email: email.trim(), password, return_url: back?.split('?')[0], recordar: remember });
+      rememberDevice(remember);
       await startSession(session);
       setState('success');
-      setTimeout(() => router.replace(session.redirect_to ?? session.usuario.ruta_inicio ?? '/panel'), 450);
+      setTimeout(() => router.replace(back ?? session.redirect_to ?? session.usuario.ruta_inicio ?? '/panel'), 450);
     } catch (err) {
       const fields = apiFieldErrors(err);
       setFieldErrors({ email: fields.email, password: fields.password });
@@ -97,7 +107,7 @@ export default function LoginForm() {
 
       <AuthItem className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-xs">
         <label className="flex cursor-pointer select-none items-center gap-2 whitespace-nowrap text-slate-600">
-          <input type="checkbox" className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#0A65A8]" />
+          <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 cursor-pointer rounded border-slate-300 accent-[#0A65A8]" />
           Recordar en este equipo
         </label>
         <Link href="/recuperar-password" className="group relative whitespace-nowrap font-semibold text-[#0A65A8]">

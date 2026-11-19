@@ -2,6 +2,8 @@ export interface LoginCredentials {
   email: string;
   password: string;
   return_url?: string;
+  /** Pedido de "Recordar en este equipo" (el backend puede usarlo para la duración de la cookie). */
+  recordar?: boolean;
 }
 
 /** Códigos de rol de la matriz D03. */
