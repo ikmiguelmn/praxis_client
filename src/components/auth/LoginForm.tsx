@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AtSign } from 'lucide-react';
@@ -24,6 +24,18 @@ export default function LoginForm() {
   const [state, setState] = useState<'idle' | 'loading' | 'success'>('idle');
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+
+  // Next conserva el estado de las páginas visitadas: al salir del login (por ejemplo, tras entrar) se limpia
+  // el formulario para que al cerrar sesión no vuelva con "Bienvenido" ni con la contraseña escrita.
+  useEffect(
+    () => () => {
+      setState('idle');
+      setPassword('');
+      setError('');
+      setFieldErrors({});
+    },
+    [],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
