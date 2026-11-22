@@ -7,13 +7,28 @@ import type { Page, Request, Route } from '@playwright/test';
  * El token es un valor ficticio que nunca sale del navegador de la prueba.
  */
 
-export type CodigoRol = 'R01' | 'R03' | 'R04' | 'R05' | 'R07';
+export type CodigoRol = 'R01' | 'R02' | 'R03' | 'R04' | 'R05' | 'R06' | 'R07';
 
-const ROLES: Record<CodigoRol, { nombre: string; inicio: string; modulos: { codigo: string; etiqueta: string; ruta: string }[] }> = {
+/** Módulo D09 del menú; `nivel` por defecto TOTAL. */
+export interface ModuloSimulado {
+  codigo: string;
+  etiqueta: string;
+  ruta: string;
+  nivel?: 'TOTAL' | 'ASIGNADAS' | 'LECTURA';
+}
+
+export interface OpcionesSesion {
+  /** Reemplaza los módulos del rol (p. ej. para las vistas del Sprint 5). */
+  modulos?: ModuloSimulado[];
+}
+
+const ROLES: Record<CodigoRol, { nombre: string; inicio: string; modulos: ModuloSimulado[] }> = {
   R01: { nombre: 'Reportante', inicio: '/mis-solicitudes', modulos: [{ codigo: 'MIS_SOLICITUDES', etiqueta: 'Mis solicitudes', ruta: '/mis-solicitudes' }] },
+  R02: { nombre: 'Gestor de incidencias', inicio: '/revision', modulos: [{ codigo: 'TRIAJE', etiqueta: 'Revisión', ruta: '/revision' }] },
   R03: { nombre: 'Coordinador de mantenimiento', inicio: '/planificacion', modulos: [{ codigo: 'PLANIFICACION', etiqueta: 'Planificación', ruta: '/planificacion' }] },
   R04: { nombre: 'Técnico de mantenimiento', inicio: '/mis-tareas', modulos: [{ codigo: 'MIS_TAREAS', etiqueta: 'Mis tareas', ruta: '/mis-tareas' }] },
   R05: { nombre: 'Responsable de autorizaciones', inicio: '/autorizaciones', modulos: [{ codigo: 'AUTORIZACIONES', etiqueta: 'Autorizaciones', ruta: '/autorizaciones' }] },
+  R06: { nombre: 'Verificador de intervenciones', inicio: '/verificacion', modulos: [{ codigo: 'VERIFICACION', etiqueta: 'Verificación', ruta: '/verificacion' }] },
   R07: { nombre: 'Administrador', inicio: '/panel', modulos: [] },
 };
 
@@ -50,7 +65,7 @@ function cors(peticion: Request): Record<string, string> {
   };
 }
 
-function perfil(rol: CodigoRol) {
+function perfil(rol: CodigoRol, modulos: ModuloSimulado[]) {
   const datos = ROLES[rol];
 
   return {
@@ -63,7 +78,7 @@ function perfil(rol: CodigoRol) {
     rol_activo: { codigo: rol, nombre: datos.nombre },
     ruta_inicio: datos.inicio,
     especialidades: [],
-    permisos: datos.modulos.map((m) => ({ modulo: m.codigo, nivel_acceso: 'TOTAL' })),
+    permisos: modulos.map((m) => ({ modulo: m.codigo, nivel_acceso: m.nivel ?? 'TOTAL' })),
   };
 }
 
@@ -71,10 +86,11 @@ function perfil(rol: CodigoRol) {
  * Prepara el contexto de la página con una sesión válida del rol indicado.
  * `manejadores` se indexa como "METODO /ruta" (sin /api/v1), p. ej. "GET /tecnico/tareas".
  */
-export async function iniciarSesionSimulada(page: Page, rol: CodigoRol, manejadores: Record<string, Manejador> = {}): Promise<SesionSimulada> {
+export async function iniciarSesionSimulada(page: Page, rol: CodigoRol, manejadores: Record<string, Manejador> = {}, opciones: OpcionesSesion = {}): Promise<SesionSimulada> {
   const llamadas: LlamadaApi[] = [];
   const sinSimular: string[] = [];
   const datos = ROLES[rol];
+  const modulos = opciones.modulos ?? datos.modulos;
 
   /*
    * Desde "Recordar en este equipo" (src/lib/session/rememberDevice.ts) el front cierra la sesión si el
@@ -92,11 +108,11 @@ export async function iniciarSesionSimulada(page: Page, rol: CodigoRol, manejado
       expires_in: 3600,
       refresh_expires_in: 7200,
       redirect_to: datos.inicio,
-      usuario: perfil(rol),
+      usuario: perfil(rol, modulos),
     }),
-    'GET /auth/me': () => ({ data: perfil(rol) }),
+    'GET /auth/me': () => ({ data: perfil(rol, modulos) }),
     'GET /navegacion/menu': () => ({
-      data: datos.modulos.map((m) => ({ ...m, icono: null, grupo: 'Operación', solo_lectura: false, nivel_acceso: 'TOTAL' })),
+      data: modulos.map((m) => ({ codigo: m.codigo, etiqueta: m.etiqueta, ruta: m.ruta, icono: null, grupo: 'Operación', solo_lectura: m.nivel === 'LECTURA', nivel_acceso: m.nivel ?? 'TOTAL' })),
     }),
     'GET /notificaciones': () => ({ data: [], meta: { current_page: 1, last_page: 1, total: 0 } }),
     'GET /notificaciones/resumen': () => ({ data: { no_leidas: 0 } }),
