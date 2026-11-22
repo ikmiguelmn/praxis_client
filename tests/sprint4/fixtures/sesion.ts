@@ -76,6 +76,15 @@ export async function iniciarSesionSimulada(page: Page, rol: CodigoRol, manejado
   const sinSimular: string[] = [];
   const datos = ROLES[rol];
 
+  /*
+   * Desde "Recordar en este equipo" (src/lib/session/rememberDevice.ts) el front cierra la sesión si el
+   * navegador no trae la cookie de sesión del navegador. Cada contexto de Playwright empieza limpio, así que
+   * se simula un navegador que sigue abierto desde el inicio de sesión. No es un defecto: es el diseño.
+   */
+  await page.context().addCookies([
+    { name: 'praxis_sesion_navegador', value: '1', url: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000' },
+  ]);
+
   const base: Record<string, Manejador> = {
     'POST /auth/refresh': () => ({
       access_token: 'token-ficticio-qa',
