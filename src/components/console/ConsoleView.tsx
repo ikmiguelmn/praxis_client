@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Download, Search, SlidersHorizontal, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Search, SlidersHorizontal, X, RotateCcw } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { EmptyState, QueryBoundary } from '@/components/ui/States';
 import IncidentTable from '@/components/ops/IncidentTable';
@@ -56,6 +56,7 @@ export default function ConsoleView() {
   const get = (k: string) => params.get(k) ?? '';
   const estados = get('estado') ? get('estado').split(',') : [];
   const activeFilters = FILTER_KEYS.filter((k) => params.get(k)).length;
+  const hasQuery = Boolean(params.get('q'));
 
   const update = (patch: Record<string, string | null>) => {
     const next = new URLSearchParams(params.toString());
@@ -65,6 +66,12 @@ export default function ConsoleView() {
     }
     if (!('page' in patch)) next.delete('page');
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
+  };
+
+  /** Vuelve al listado habitual: borra la búsqueda y todos los filtros (BUG-0006, KAN-301 E3). */
+  const resetView = () => {
+    setSearch('');
+    update({ q: null, ...Object.fromEntries(FILTER_KEYS.map((k) => [k, null])) });
   };
 
   useEffect(() => {
@@ -126,8 +133,8 @@ export default function ConsoleView() {
             Filtros
             {activeFilters > 0 && <span className="rounded-full bg-praxis-navy px-1.5 text-[10px] font-bold text-white">{activeFilters}</span>}
           </button>
-          {activeFilters > 0 && (
-            <button type="button" onClick={() => update(Object.fromEntries(FILTER_KEYS.map((k) => [k, null])))} className="btn-ghost h-11 text-xs">
+          {(activeFilters > 0 || hasQuery) && (
+            <button type="button" onClick={resetView} className="btn-ghost h-11 text-xs">
               <X className="h-3.5 w-3.5" aria-hidden="true" />
               Limpiar
             </button>
@@ -208,7 +215,19 @@ export default function ConsoleView() {
 
         <QueryBoundary loading={query.initialLoading} error={query.error} onRetry={query.reload} label="Cargando consola">
           {query.data && query.data.data.length === 0 ? (
-            <EmptyState icon={<Search className="h-7 w-7" />} title="Sin resultados" description="Ninguna incidencia coincide con la búsqueda o los filtros." />
+            <EmptyState
+              icon={<Search className="h-7 w-7" />}
+              title="Sin resultados coincidentes"
+              description="Ninguna incidencia coincide con la búsqueda o los filtros."
+              action={
+                (activeFilters > 0 || hasQuery) && (
+                  <button type="button" onClick={resetView} className="btn-secondary">
+                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                    Restablecer vista
+                  </button>
+                )
+              }
+            />
           ) : (
             query.data && (
               <div className={query.loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
