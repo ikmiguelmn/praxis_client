@@ -20,12 +20,13 @@ import FormAlert from './FormAlert';
 const RESEND_SECONDS = 60;
 const CODE_LENGTH = 6;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-type Step = 'email' | 'code' | 'password' | 'done';
+type Step = 'email' | 'code' | 'link' | 'password' | 'done';
 
 const COPY: Record<Step, { title: string; subtitle: string }> = {
   email: { title: 'Recuperar contraseña', subtitle: 'Te enviaremos un código a tu correo institucional' },
   code: { title: 'Revisa tu correo', subtitle: 'Escribe el código de 6 dígitos que te enviamos' },
   password: { title: 'Nueva contraseña', subtitle: 'Crea una contraseña segura para tu cuenta' },
+  link: { title: 'Revisa tu correo', subtitle: 'Abre el enlace que te enviamos para crear tu nueva contraseña' },
   done: { title: 'Contraseña actualizada', subtitle: 'Ya puedes iniciar sesión con tu nueva clave' },
 };
 
@@ -97,7 +98,8 @@ export default function RequestRecoveryFlow() {
       go('password');
     } catch (err) {
       const status = apiStatus(err);
-      if (status === 404 || status === 405) setError('La verificación por código todavía no está disponible en el servidor. Contacta a la mesa de ayuda.');
+      // El servidor todavía no verifica códigos (solo envía un enlace): se guía a la persona a usar ese enlace.
+      if (status === 404 || status === 405) go('link');
       else setFieldError(apiFieldErrors(err).codigo ?? apiErrorMessage(err, 'El código no es válido o ya venció.'));
     } finally {
       setBusy(false);
@@ -128,7 +130,7 @@ export default function RequestRecoveryFlow() {
     }
   };
 
-  const stepNumber = { email: 1, code: 2, password: 3, done: 4 }[step];
+  const stepNumber = { email: 1, code: 2, link: 2, password: 3, done: 4 }[step];
   const matches = confirmation.length > 0 && confirmation === password;
 
   return (
@@ -272,6 +274,36 @@ export default function RequestRecoveryFlow() {
             <AuthSubmit state={busy ? 'loading' : 'idle'} label="Guardar contraseña" loadingLabel="Guardando" />
           </AuthItem>
         </form>
+      )}
+
+      {step === 'link' && (
+        <div className="space-y-4 sm:space-y-5">
+          <AuthItem>
+            <div className="flex items-start gap-3 rounded-xl border border-[#D7E2ED] bg-[#F7FAFC] px-3 py-3 text-[13px] leading-relaxed text-slate-600">
+              <motion.span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0B1B3A] text-[#35BE8B]"
+                animate={reduceMotion ? undefined : { y: [0, -3, 0] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <MailCheck className="h-4 w-4" aria-hidden="true" />
+              </motion.span>
+              <span>
+                Si <span className="font-semibold text-slate-900 break-all">{email.trim()}</span> está registrado, te llegó un correo con un enlace para crear tu nueva contraseña. Ábrelo en este equipo; vence pronto y solo sirve una vez.
+              </span>
+            </div>
+          </AuthItem>
+          <FormAlert message={notice} tone="success" />
+          <AuthError message={error} />
+          <AuthItem className="flex items-center justify-between text-[13px]">
+            <button type="button" onClick={() => go('email')} className={linkButton}>
+              Usar otro correo
+            </button>
+            <button type="button" onClick={() => void sendCode(true)} disabled={busy || cooldown > 0} className={`${linkButton} inline-flex items-center gap-1.5`}>
+              <RotateCw className="h-3.5 w-3.5" aria-hidden="true" />
+              {cooldown > 0 ? <span className="tabular-nums">Reenviar en {cooldown}s</span> : 'Reenviar enlace'}
+            </button>
+          </AuthItem>
+        </div>
       )}
 
       {step === 'done' && (

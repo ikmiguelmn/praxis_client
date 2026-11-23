@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Download, FileText, ImageOff, X } from 'lucide-react';
@@ -16,8 +16,28 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 /** Miniaturas de evidencias con visor ampliado (lightbox) y navegación con teclado. */
-export default function EvidenceGallery({ items, emptyText = 'Sin evidencias adjuntas.' }: { items: EvidenciaDetalle[]; emptyText?: string }) {
+/** Reintentos máximos para renovar enlaces vencidos mientras la galería sigue abierta. */
+const MAX_RENEWALS = 3;
+
+export default function EvidenceGallery({
+  items,
+  emptyText = 'Sin evidencias adjuntas.',
+  onExpired,
+}: {
+  items: EvidenciaDetalle[];
+  emptyText?: string;
+  /** Las URLs firmadas vencen (~30 min): si una imagen deja de cargar se piden datos nuevos. */
+  onExpired?: () => void;
+}) {
   const [index, setIndex] = useState<number | null>(null);
+  const renewals = useRef(0);
+  const renewed = useRef(new Set<string>());
+  const handleBrokenImage = (url: string) => {
+    if (!onExpired || renewed.current.has(url) || renewals.current >= MAX_RENEWALS) return;
+    renewed.current.add(url);
+    renewals.current += 1;
+    onExpired();
+  };
   const images = items.filter((e) => e.mime_type.startsWith('image/'));
   const current = index !== null ? images[index] : null;
 
@@ -56,7 +76,7 @@ export default function EvidenceGallery({ items, emptyText = 'Sin evidencias adj
                   aria-label={`Ver ${ev.nombre_original}`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={ev.url} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
+                  <img src={ev.url} onError={() => handleBrokenImage(ev.url)} alt="" className="h-full w-full object-cover transition duration-300 group-hover:scale-105" />
                   <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/70 to-transparent px-2 pb-1.5 pt-4 text-left text-[10px] font-semibold text-white">
                     {STAGE_LABELS[ev.etapa] ?? ev.etapa}
                   </span>
@@ -111,6 +131,7 @@ export default function EvidenceGallery({ items, emptyText = 'Sin evidencias adj
                   <motion.img
                     key={current.id}
                     src={current.url}
+                    onError={() => handleBrokenImage(current.url)}
                     alt={current.nombre_original}
                     className="max-h-full max-w-full rounded-xl object-contain shadow-2xl"
                     initial={{ opacity: 0, scale: 0.96 }}

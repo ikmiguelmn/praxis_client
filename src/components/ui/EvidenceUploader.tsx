@@ -71,7 +71,11 @@ export default function EvidenceUploader({ value, onChange, max = 4, required = 
             onProgress: (progress) => setPending((p) => p.map((x) => (x.key === key ? { ...x, progress } : x))),
           });
           setPending((p) => p.filter((x) => x.key !== key));
-          onChange([...latest.current, uploaded]);
+          // Se actualiza la referencia en el acto: con varias subidas en paralelo cada una suma sobre
+          // la lista ya acumulada y ninguna foto pisa a otra (antes se esperaba al siguiente render).
+          const next = [...latest.current, uploaded];
+          latest.current = next;
+          onChange(next);
         } catch (err) {
           const message = err instanceof Error && !('isAxiosError' in err) ? err.message : apiErrorMessage(err, 'No se pudo subir el archivo.');
           setPending((p) => p.map((x) => (x.key === key ? { ...x, error: message } : x)));
@@ -155,7 +159,11 @@ export default function EvidenceUploader({ value, onChange, max = 4, required = 
                   </span>
                   <button
                     type="button"
-                    onClick={() => onChange(value.filter((x) => x.id !== ev.id))}
+                    onClick={() => {
+                      const next = latest.current.filter((x) => x.id !== ev.id);
+                      latest.current = next;
+                      onChange(next);
+                    }}
                     aria-label={`Quitar ${ev.nombre_original}`}
                     className="rounded-lg p-2 text-red-500 transition hover:bg-red-50"
                   >

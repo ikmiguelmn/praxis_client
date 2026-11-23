@@ -125,7 +125,7 @@ function Detail({ inc, history, refresh, loading }: { inc: IncidenciaOperativa; 
           </Card>
 
           <Card title={`Evidencias (${inc.evidencias.length})`}>
-            <EvidenceGallery items={inc.evidencias} />
+            <EvidenceGallery items={inc.evidencias} onExpired={() => refresh()} />
           </Card>
 
           {(inc.incidencia_principal || inc.duplicados_vinculados.length > 0) && (

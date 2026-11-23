@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from '@/lib/session/SessionProvider';
-import { LoadingState } from '@/components/ui/States';
+import FullscreenLoader from '@/components/ui/FullscreenLoader';
 
 /** Módulos con acceso a la ficha operativa /incidencias/{id}. */
 export const OPERATIONAL_MODULES = ['TRIAJE', 'PLANIFICACION', 'MIS_TAREAS', 'AUTORIZACIONES', 'VERIFICACION', 'CONSOLA'];
@@ -17,5 +17,5 @@ export default function IncidentRedirect({ id }: { id: string }) {
     router.replace(operational ? `/incidencias/${id}` : `/mis-solicitudes/${id}`);
   }, [id, operational, router]);
 
-  return <LoadingState label="Abriendo solicitud" />;
+  return <FullscreenLoader label="Abriendo solicitud" />;
 }
