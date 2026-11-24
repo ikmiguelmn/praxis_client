@@ -30,12 +30,35 @@ const NEXT_STEPS = [
   { title: 'Atención y cierre', text: 'Se repara, se verifica la calidad y te pedimos confirmar.' },
 ];
 
+/** Ancho del ticket al imprimir, antes de escalarlo (coincide con .praxis-print-root en globals.css). */
+const TICKET_BASE_MM = 110;
+/** Área útil común a carta y A4 con márgenes de 10 mm: 196 × 259 mm (se deja un pequeño margen extra). */
+const PAGE_USABLE_MM = { width: 190, height: 250 };
+
+/**
+ * Escala para que el comprobante ocupe la hoja sin cortarse: se mide la proporción del ticket en pantalla
+ * y se elige el mayor tamaño que cabe a lo ancho y a lo alto.
+ */
+function ticketPrintZoom(): number {
+  const ticket = [...document.querySelectorAll<HTMLElement>('.praxis-ticket')].find((el) => !el.closest('.praxis-print-root'));
+  const box = ticket?.getBoundingClientRect();
+  const ratio = box && box.width > 0 ? box.height / box.width : 1.45;
+  const byWidth = PAGE_USABLE_MM.width / TICKET_BASE_MM;
+  const byHeight = PAGE_USABLE_MM.height / (TICKET_BASE_MM * ratio);
+  return Math.round(Math.min(byWidth, byHeight) * 100) / 100;
+}
+
 /** Comprobante de radicación que sale de la impresora, recibe el sello y se puede imprimir de verdad. */
 export default function ReportConfirmation({ result, ubicacion, categoria, subcategoria, onNew }: ReportConfirmationProps) {
   const { profile } = useSession();
   const reduceMotion = useReducedMotion();
   const [copied, setCopied] = useState(false);
   const [printing, setPrinting] = useState(false);
+  const [printZoom, setPrintZoom] = useState(1);
+  const startPrint = () => {
+    setPrintZoom(ticketPrintZoom());
+    setPrinting(true);
+  };
   const animate = !reduceMotion;
 
   useEffect(() => {
@@ -169,7 +192,7 @@ export default function ReportConfirmation({ result, ubicacion, categoria, subca
             <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
           </Link>
           <div className="grid gap-3 sm:grid-cols-2">
-            <button type="button" onClick={() => setPrinting(true)} className="btn-secondary h-12">
+            <button type="button" onClick={startPrint} className="btn-secondary h-12">
               <Printer className="h-4 w-4" aria-hidden="true" />
               Imprimir comprobante
             </button>
@@ -194,7 +217,14 @@ export default function ReportConfirmation({ result, ubicacion, categoria, subca
         </motion.div>
       </div>
 
-      {printing && createPortal(<div className="praxis-print-root"><Ticket {...ticketProps} still /></div>, document.body)}
+      {printing &&
+        createPortal(
+          // El zoom va en línea: el compilador de CSS descarta "zoom" con variables.
+          <div className="praxis-print-root" style={{ zoom: printZoom, breakInside: 'avoid' }}>
+            <Ticket {...ticketProps} still />
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

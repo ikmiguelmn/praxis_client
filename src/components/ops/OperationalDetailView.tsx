@@ -55,12 +55,12 @@ export default function OperationalDetailView({ id }: { id: string }) {
       onRetry={query.reload}
       label="Cargando ficha"
     >
-      {query.data && <Detail inc={query.data} history={history.data} refresh={refresh} loading={query.loading} />}
+      {query.data && <Detail inc={query.data} history={history.data} refresh={refresh} reloadDetail={query.reload} loading={query.loading} />}
     </QueryBoundary>
   );
 }
 
-function Detail({ inc, history, refresh, loading }: { inc: IncidenciaOperativa; history?: Awaited<ReturnType<typeof opsService.historial>>; refresh: (m?: string) => void; loading: boolean }) {
+function Detail({ inc, history, refresh, reloadDetail, loading }: { inc: IncidenciaOperativa; history?: Awaited<ReturnType<typeof opsService.historial>>; refresh: (m?: string) => void; reloadDetail: () => Promise<void>; loading: boolean }) {
   const router = useRouter();
   const { activeRole, profile } = useSession();
   const opsStamp = stampFor(inc.estado.codigo, null);
@@ -128,7 +128,7 @@ function Detail({ inc, history, refresh, loading }: { inc: IncidenciaOperativa; 
           </Card>
 
           <Card title={`Evidencias (${inc.evidencias.length})`}>
-            <EvidenceGallery items={inc.evidencias} onExpired={() => refresh()} />
+            <EvidenceGallery items={inc.evidencias} onExpired={reloadDetail} />
           </Card>
 
           {(inc.incidencia_principal || inc.duplicados_vinculados.length > 0) && (

@@ -344,7 +344,7 @@ html.dark .stamp-ink {
 
 @media print {
   @page {
-    margin: 12mm;
+    margin: 10mm;
   }
   /* Comprobante de radicación: solo mientras se imprime el ticket se oculta el resto de la página. */
   body.praxis-printing-ticket > *:not(.praxis-print-root) {
@@ -368,6 +368,7 @@ html.dark .stamp-ink {
   }
   .praxis-print-root {
     display: block !important;
+    /* Se escala con un zoom en línea calculado al imprimir para ocupar la hoja sin desbordarse. */
     width: 110mm;
     margin: 0 auto;
     -webkit-print-color-adjust: exact;
