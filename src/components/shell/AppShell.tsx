@@ -18,22 +18,6 @@ import Toaster from '@/components/ui/Toaster';
 import ConfirmHost from '@/components/ui/ConfirmDialog';
 import PageLoader from '@/components/ui/PageLoader';
 
-function ConnectionChip() {
-  const online = useOnline();
-  return (
-    <div
-      className="hidden h-11 items-center gap-2.5 rounded-xl border border-praxis-line bg-white px-4 text-sm font-semibold text-slate-800 xl:flex"
-      title={online ? 'Conectado a PRAXIS' : 'Sin conexión'}
-    >
-      <span className="relative flex h-2.5 w-2.5">
-        {online && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />}
-        <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${online ? 'bg-emerald-500' : 'bg-red-500'}`} />
-      </span>
-      ECCI · Planta física
-    </div>
-  );
-}
-
 function TopBar() {
   const { profile } = useSession();
   return (
@@ -52,7 +36,6 @@ function TopBar() {
           <GlobalSearch />
         </div>
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <ConnectionChip />
           <ThemeToggle />
           <NotificationBell />
           <UserMenu />

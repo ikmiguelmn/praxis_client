@@ -164,7 +164,7 @@ function Detail({ data, reload }: { data: SolicitudDetalle; reload: () => Promis
 
           <section className="card p-6">
             <h2 className="eyebrow mb-4">Evidencias ({reportEvidence.length})</h2>
-            <EvidenceGallery items={reportEvidence} onExpired={() => void reload()} />
+            <EvidenceGallery items={reportEvidence} onExpired={reload} />
           </section>
 
           {(acciones.puede_cancelar || acciones.puede_reabrir || acciones.mensaje_cancelacion || data.estado.codigo === 'E15') && (
