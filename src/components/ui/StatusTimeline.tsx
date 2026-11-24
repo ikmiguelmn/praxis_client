@@ -142,21 +142,20 @@ export default function StatusTimeline({
             <span className={`absolute left-0 top-1 flex h-[15px] w-[15px] items-center justify-center rounded-full ring-4 ring-white ${latest ? tone.dot : 'bg-slate-300'}`} aria-hidden="true">
               {latest && <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-40 ${tone.dot}`} />}
             </span>
-            <div>
-              <div className="min-w-0">
-                <p className={`text-sm font-bold ${latest ? tone.text : 'text-slate-800'}`}>{eventTitle(event)}</p>
-                <p className="mt-0.5 text-xs text-slate-400">{formatDateTime(event.fecha_hora)}</p>
-                {(who || role) && (
-                  <p className="mt-1 inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-slate-500">
-                    <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
-                    {who && <span className="font-semibold text-slate-700">{who}</span>}
-                    {who && role && <span aria-hidden="true">·</span>}
-                    {role && <span>{role}</span>}
-                  </p>
-                )}
-              </div>
-              {stamp && !compact && <Stamp label={stamp.label} tone={stamp.tone} animate={latest} className="ml-1 mt-2" />}
+            <div className="flex items-start justify-between gap-3">
+              <p className={`min-w-0 text-sm font-bold ${latest ? tone.text : 'text-slate-800'}`}>{eventTitle(event)}</p>
+              {/* Sello a un lado del título del evento */}
+              {stamp && !compact && <Stamp label={stamp.label} tone={stamp.tone} animate={latest} className="-mt-0.5 shrink-0" />}
             </div>
+            <p className="mt-0.5 whitespace-nowrap text-xs text-slate-400">{formatDateTime(event.fecha_hora)}</p>
+            {(who || role) && (
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-slate-500">
+                <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                {who && <span className="font-semibold text-slate-700">{who}</span>}
+                {who && role && <span aria-hidden="true">·</span>}
+                {role && <span>{role}</span>}
+              </p>
+            )}
             {event.motivo && !compact && <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{event.motivo}</p>}
             {event.evidencias && event.evidencias.length > 0 && !compact && (
               <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-slate-500">

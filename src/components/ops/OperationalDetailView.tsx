@@ -85,7 +85,7 @@ function Detail({ inc, history, refresh, loading }: { inc: IncidenciaOperativa; 
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-3">
               <span className="font-mono text-sm font-bold text-slate-500">{inc.codigo_ticket}</span>
-              <StatusBadge code={inc.estado.codigo} name={inc.estado.nombre} color={inc.estado.color} size="md" />
+              {!(opsStamp && inc.estado.codigo !== 'E01') && <StatusBadge code={inc.estado.codigo} name={inc.estado.nombre} color={inc.estado.color} size="md" />}
               <PriorityBadge code={inc.prioridad?.codigo} name={inc.prioridad?.nombre} color={inc.prioridad?.color} />
               <IncidentFlags risk={inc.es_riesgo_inmediato} duplicate={inc.posible_duplicado} />
               {opsStamp && inc.estado.codigo !== 'E01' && <Stamp label={opsStamp.label} tone={opsStamp.tone} size="lg" className="ml-1" />}

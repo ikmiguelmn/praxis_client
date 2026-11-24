@@ -77,7 +77,7 @@ function Detail({ data, reload }: { data: SolicitudDetalle; reload: () => Promis
         <span className="hidden h-6 w-px bg-praxis-line lg:block" aria-hidden="true" />
         <div className="flex flex-1 flex-wrap items-center gap-3">
           <h1 className="font-mono text-2xl font-extrabold tracking-tight text-slate-900">#{data.codigo_ticket}</h1>
-          <StatusBadge code={data.estado.codigo} name={data.estado.nombre} color={data.estado.color} size="md" />
+          {!(headerStamp && data.estado.codigo !== 'E01') && <StatusBadge code={data.estado.codigo} name={data.estado.nombre} color={data.estado.color} size="md" />}
           <IncidentFlags risk={data.es_riesgo_inmediato} />
           {headerStamp && data.estado.codigo !== 'E01' && <Stamp label={headerStamp.label} tone={headerStamp.tone} size="lg" detail={data.fecha_cierre ? formatDate(data.fecha_cierre) : undefined} className="ml-1" />}
           {data.es_seguimiento && (
