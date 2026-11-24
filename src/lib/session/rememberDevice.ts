@@ -69,8 +69,12 @@ export function sessionShouldEnd(): boolean {
   return !lastSeen || Date.now() - lastSeen > CLOSED_AFTER_MS;
 }
 
-/** Al cerrar sesión se olvida la marca del navegador (el correo recordado se conserva para el próximo ingreso). */
+/**
+ * Al cerrar sesión se olvida la marca del navegador y la preferencia de "recordar";
+ * el correo recordado se conserva para dejarlo escrito en el próximo ingreso.
+ */
 export function forgetDevice() {
+  write(REMEMBER_KEY, null);
   document.cookie = `${ALIVE_COOKIE}=; path=/; max-age=0; SameSite=Lax`;
   write(LAST_SEEN_KEY, null);
 }

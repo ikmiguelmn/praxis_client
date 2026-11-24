@@ -5,8 +5,13 @@ import AuthLayout from './AuthLayout';
 import LoginNotice from './LoginNotice';
 import LoginForm from './LoginForm';
 import ResumeSession from './ResumeSession';
+import { useSession } from '@/lib/session/SessionProvider';
 
 export default function LoginPage() {
+  // Next 16 puede devolver el login cacheado con el botón en "Bienvenido"; al cerrar sesión
+  // cambiamos la key para forzar un formulario limpio.
+  const { signedOut } = useSession();
+
   return (
     <Suspense fallback={null}>
       <ResumeSession>
@@ -14,7 +19,7 @@ export default function LoginPage() {
           <Suspense fallback={null}>
             <LoginNotice />
           </Suspense>
-          <LoginForm />
+          <LoginForm key={signedOut ? 'after-logout' : 'login'} />
         </AuthLayout>
       </ResumeSession>
     </Suspense>
