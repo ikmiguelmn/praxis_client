@@ -87,7 +87,7 @@ test.describe('consola de incidencias (KAN-301)', () => {
     await page.goto('/consola?q=no-existe');
 
     await expect(page.getByRole('heading', { name: /Sin resultados/ })).toBeVisible();
-    await page.getByRole('button', { name: /Restablecer|Limpiar/ }).click();
+    await page.getByRole('button', { name: 'Restablecer vista' }).click();
     await expect(page.getByRole('link', { name: 'TKT-2026-000101' })).toBeVisible();
     expect(sesion.sinSimular).toEqual([]);
   });
@@ -120,7 +120,8 @@ test.describe('consola de incidencias (KAN-301)', () => {
 
     await page.goto('/consola');
 
-    await expect(page).toHaveURL(/\/mis-solicitudes/);
+    // La vista muestra el aviso de rol con una cuenta regresiva de 3 s antes de redirigir.
+    await expect(page).toHaveURL(/\/mis-solicitudes/, { timeout: 10_000 });
     expect(sesion.llamadasA('GET', '/consola/incidencias')).toEqual([]);
   });
 });
