@@ -98,8 +98,13 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
     await refreshSession();
     return api(config);
   } catch (refreshError) {
-    clearAccessToken();
-    listeners.forEach((listener) => listener({ type: 'expired' }));
+    // Solo un rechazo real del servidor (4xx) significa sesión vencida. Si el servidor no responde
+    // o falla (red caída, 5xx), la sesión se conserva y la petición simplemente falla.
+    const status = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined;
+    if (status !== undefined && status < 500) {
+      clearAccessToken();
+      listeners.forEach((listener) => listener({ type: 'expired' }));
+    }
     return Promise.reject(refreshError);
   }
 });

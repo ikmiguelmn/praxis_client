@@ -4,9 +4,11 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { authService } from '@/services/authService';
 import { forgetDevice, sessionShouldEnd } from './rememberDevice';
 import { onSessionChange, setActiveRoleHeader } from '@/services/api';
+import { apiStatus } from '@/lib/apiError';
 import type { MenuItem, Profile, RoleCode, SessionResponse } from '@/types/auth';
 
-type Status = 'idle' | 'loading' | 'authenticated' | 'anonymous';
+/** unreachable: no se pudo contactar al servidor; la sesión no se da por cerrada. */
+type Status = 'idle' | 'loading' | 'authenticated' | 'anonymous' | 'unreachable';
 
 interface SessionContextValue {
   status: Status;
@@ -17,6 +19,8 @@ interface SessionContextValue {
   signedOut: boolean;
   /** Recupera la sesión desde la cookie de refresh si todavía no hay una en memoria. */
   ensureSession: () => Promise<boolean>;
+  /** Vuelve a intentar recuperar la sesión cuando el servidor no respondió. */
+  retrySession: () => void;
   /** Guarda la sesión recién iniciada en el login. */
   startSession: (session: SessionResponse) => Promise<void>;
   /** Cambia el rol activo y recarga perfil y menú según la matriz D09. */
@@ -25,6 +29,25 @@ interface SessionContextValue {
 }
 
 const SessionContext = createContext<SessionContextValue | null>(null);
+
+/** Error de red o del servidor (5xx): no dice nada sobre si la sesión sigue vigente. */
+function isServerUnavailable(err: unknown): boolean {
+  const status = apiStatus(err);
+  return status === null || status >= 500;
+}
+
+/** Recupera la sesión reintentando unas veces si el servidor no responde (por ejemplo, mientras arranca). */
+async function restoreWithRetry(): ReturnType<typeof authService.restore> {
+  const waits = [800, 2000];
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await authService.restore();
+    } catch (err) {
+      if (!isServerUnavailable(err) || attempt >= waits.length) throw err;
+      await new Promise((resolve) => setTimeout(resolve, waits[attempt]));
+    }
+  }
+}
 const ROLE_STORAGE_KEY = 'praxis.rol-activo';
 
 function readStoredRole(): RoleCode | null {
@@ -95,14 +118,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         });
       return pending.current;
     }
-    pending.current = authService
-      .restore()
+    pending.current = restoreWithRetry()
       .then(async ({ usuario }) => {
         await hydrate(usuario);
         return true;
       })
-      .catch(() => {
-        setStatus('anonymous');
+      .catch((err) => {
+        // Sin cookie válida (4xx) no hay sesión; si el servidor no respondió, se ofrece reintentar
+        // en lugar de mandar al login (recargar con el backend caído ya no cierra la sesión).
+        setStatus(isServerUnavailable(err) ? 'unreachable' : 'anonymous');
         return false;
       })
       .finally(() => {
@@ -111,6 +135,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
     return pending.current;
   }, [status, hydrate]);
+
+  const retrySession = useCallback(() => setStatus('idle'), []);
 
   const startSession = useCallback(
     async (session: SessionResponse) => {
@@ -158,8 +184,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ status, profile, menu, activeRole, signedOut, ensureSession, startSession, switchRole, signOut }),
-    [status, profile, menu, activeRole, signedOut, ensureSession, startSession, switchRole, signOut],
+    () => ({ status, profile, menu, activeRole, signedOut, ensureSession, retrySession, startSession, switchRole, signOut }),
+    [status, profile, menu, activeRole, signedOut, ensureSession, retrySession, startSession, switchRole, signOut],
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
