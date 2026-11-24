@@ -112,22 +112,22 @@ body {
    Se redefine la paleta para que todas las pantallas se adapten sin cambiar cada componente. */
 html.dark {
   color-scheme: dark;
-  --surface-card: #111a2e;
-  --color-praxis-surface: #0b1220;
-  --color-praxis-line: #24314b;
-  --color-praxis-field: #17223a;
-  --color-praxis-navy: #1d3461;
-  --color-praxis-navy-soft: #26437a;
-  --color-slate-50: #152036;
-  --color-slate-100: #1b2740;
-  --color-slate-200: #26334f;
-  --color-slate-300: #36445f;
-  --color-slate-400: #7d8ba3;
-  --color-slate-500: #94a3b8;
-  --color-slate-600: #b4c0d2;
-  --color-slate-700: #cbd5e1;
-  --color-slate-800: #e2e8f0;
-  --color-slate-900: #f1f5f9;
+  --surface-card: #141414;
+  --color-praxis-surface: #0a0a0a;
+  --color-praxis-line: #262626;
+  --color-praxis-field: #1c1c1c;
+  --color-praxis-navy: #262626;
+  --color-praxis-navy-soft: #333333;
+  --color-slate-50: #1a1a1a;
+  --color-slate-100: #212121;
+  --color-slate-200: #2e2e2e;
+  --color-slate-300: #404040;
+  --color-slate-400: #8a8a8a;
+  --color-slate-500: #a3a3a3;
+  --color-slate-600: #bdbdbd;
+  --color-slate-700: #d4d4d4;
+  --color-slate-800: #e5e5e5;
+  --color-slate-900: #f5f5f5;
   --color-sky-50: color-mix(in oklab, #0ea5e9 14%, var(--surface-card));
   --color-sky-100: color-mix(in oklab, #0ea5e9 22%, var(--surface-card));
   --color-sky-200: color-mix(in oklab, #0ea5e9 34%, var(--surface-card));
