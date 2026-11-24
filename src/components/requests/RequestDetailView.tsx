@@ -32,6 +32,8 @@ import { requestService } from '@/services/requestService';
 import type { Evidencia } from '@/services/evidenceService';
 import type { SolicitudDetalle } from '@/types/incident';
 import { useApiQuery } from '@/lib/useApiQuery';
+import { useSession } from '@/lib/session/SessionProvider';
+import Stamp, { stampFor } from '@/components/ui/Stamp';
 import { apiErrorMessage } from '@/lib/apiError';
 import { formatDate, formatDateTime, formatRelative } from '@/lib/format';
 
@@ -50,6 +52,8 @@ function Detail({ data, reload }: { data: SolicitudDetalle; reload: () => Promis
   const [dialog, setDialog] = useState<'aclaracion' | 'cancelar' | 'reabrir' | 'rechazar' | null>(null);
   const [copied, setCopied] = useState(false);
   const { acciones } = data;
+  const { profile } = useSession();
+  const headerStamp = stampFor(data.estado.codigo, null);
   const done = (message: string) => {
     toast(message);
     void reload();
@@ -75,6 +79,7 @@ function Detail({ data, reload }: { data: SolicitudDetalle; reload: () => Promis
           <h1 className="font-mono text-2xl font-extrabold tracking-tight text-slate-900">#{data.codigo_ticket}</h1>
           <StatusBadge code={data.estado.codigo} name={data.estado.nombre} color={data.estado.color} size="md" />
           <IncidentFlags risk={data.es_riesgo_inmediato} />
+          {headerStamp && data.estado.codigo !== 'E01' && <Stamp label={headerStamp.label} tone={headerStamp.tone} size="lg" detail={data.fecha_cierre ? formatDate(data.fecha_cierre) : undefined} className="ml-1" />}
           {data.es_seguimiento && (
             <span className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">
               <BellRing className="h-3.5 w-3.5" aria-hidden="true" />
@@ -198,7 +203,7 @@ function Detail({ data, reload }: { data: SolicitudDetalle; reload: () => Promis
 
         <aside className="card p-6 lg:sticky lg:top-44">
           <h2 className="eyebrow mb-5">Trazabilidad técnica</h2>
-          <StatusTimeline events={data.historial} />
+          <StatusTimeline events={data.historial} selfName={data.es_creador ? profile?.nombre : undefined} />
         </aside>
       </div>
 

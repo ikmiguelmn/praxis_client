@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Paperclip } from 'lucide-react';
+import { Paperclip, UserRound } from 'lucide-react';
+import Stamp, { stampFor } from './Stamp';
 import type { EventoHistorial } from '@/types/incident';
 import { TONE_CLASSES, stateTone } from '@/lib/tones';
 import { formatDateTime } from '@/lib/format';
@@ -84,7 +85,18 @@ const FILTERS: { key: string; label: string; test: (e: EventoHistorial) => boole
   { key: 'avisos', label: 'Notificaciones', test: (e) => e.tipo_evento === 'COMUNICACION' },
 ];
 
-export default function StatusTimeline({ events, compact = false, filterable = false }: { events: EventoHistorial[]; compact?: boolean; filterable?: boolean }) {
+export default function StatusTimeline({
+  events,
+  compact = false,
+  filterable = false,
+  selfName,
+}: {
+  events: EventoHistorial[];
+  compact?: boolean;
+  filterable?: boolean;
+  /** Nombre de quien ve su propia solicitud: el historial público no trae nombres y sus acciones (rol R01) son suyas. */
+  selfName?: string;
+}) {
   const reduceMotion = useReducedMotion();
   const [filter, setFilter] = useState('todo');
   const test = FILTERS.find((f) => f.key === filter)!.test;
@@ -115,7 +127,9 @@ export default function StatusTimeline({ events, compact = false, filterable = f
       {ordered.map((event, index) => {
         const tone = TONE_CLASSES[stateTone(event.estado_nuevo?.codigo)];
         const latest = index === 0;
-        const who = event.usuario?.name ?? event.usuario?.nombre;
+        const who = event.usuario?.name ?? event.usuario?.nombre ?? (selfName && event.rol === 'R01' ? `${selfName} (tú)` : undefined);
+        const role = event.rol ? ROLE_LABELS[event.rol] ?? event.rol : null;
+        const stamp = stampFor(event.estado_nuevo?.codigo, event.tipo_evento);
         return (
           <motion.li
             key={event.id}
@@ -128,11 +142,21 @@ export default function StatusTimeline({ events, compact = false, filterable = f
             <span className={`absolute left-0 top-1 flex h-[15px] w-[15px] items-center justify-center rounded-full ring-4 ring-white ${latest ? tone.dot : 'bg-slate-300'}`} aria-hidden="true">
               {latest && <span className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-40 ${tone.dot}`} />}
             </span>
-            <p className={`text-sm font-bold ${latest ? tone.text : 'text-slate-800'}`}>{eventTitle(event)}</p>
-            <p className="mt-0.5 text-xs text-slate-400">
-              {formatDateTime(event.fecha_hora)}
-              {(who || event.rol) && ` · ${who ?? ''}${who && event.rol ? ' · ' : ''}${event.rol ? ROLE_LABELS[event.rol] ?? event.rol : ''}`}
-            </p>
+            <div>
+              <div className="min-w-0">
+                <p className={`text-sm font-bold ${latest ? tone.text : 'text-slate-800'}`}>{eventTitle(event)}</p>
+                <p className="mt-0.5 text-xs text-slate-400">{formatDateTime(event.fecha_hora)}</p>
+                {(who || role) && (
+                  <p className="mt-1 inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-slate-500">
+                    <UserRound className="h-3.5 w-3.5 shrink-0 text-slate-400" aria-hidden="true" />
+                    {who && <span className="font-semibold text-slate-700">{who}</span>}
+                    {who && role && <span aria-hidden="true">·</span>}
+                    {role && <span>{role}</span>}
+                  </p>
+                )}
+              </div>
+              {stamp && !compact && <Stamp label={stamp.label} tone={stamp.tone} animate={latest} className="ml-1 mt-2" />}
+            </div>
             {event.motivo && !compact && <p className="mt-1.5 text-sm leading-relaxed text-slate-600">{event.motivo}</p>}
             {event.evidencias && event.evidencias.length > 0 && !compact && (
               <p className="mt-1.5 inline-flex items-center gap-1 text-xs text-slate-500">

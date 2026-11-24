@@ -314,6 +314,19 @@ html.dark .theme-light {
   --color-praxis-line: #e3e8ef;
 }
 
+/* Aros blancos (puntos de la línea de tiempo, contadores) toman el color de la tarjeta en modo oscuro */
+html.dark .ring-white:not(.theme-light *) {
+  --tw-ring-color: var(--surface-card);
+}
+
+/* Tinta de los sellos: se funde con el papel en claro y se ve plena en oscuro */
+.stamp-ink {
+  mix-blend-mode: multiply;
+}
+html.dark .stamp-ink {
+  mix-blend-mode: normal;
+}
+
 /* Barra de tiempo restante de los avisos (Toaster) */
 @keyframes praxis-toast-countdown {
   from {

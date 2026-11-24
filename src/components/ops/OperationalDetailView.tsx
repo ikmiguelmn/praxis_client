@@ -26,6 +26,7 @@ import { QueryBoundary } from '@/components/ui/States';
 import { IncidentFlags, PriorityBadge, StatusBadge, ToneBadge } from '@/components/ui/Badges';
 import EvidenceGallery from '@/components/ui/EvidenceGallery';
 import StatusTimeline from '@/components/ui/StatusTimeline';
+import Stamp, { stampFor } from '@/components/ui/Stamp';
 import { toast } from '@/components/ui/Toaster';
 import { opsService } from '@/services/opsService';
 import { useApiQuery } from '@/lib/useApiQuery';
@@ -62,6 +63,7 @@ export default function OperationalDetailView({ id }: { id: string }) {
 function Detail({ inc, history, refresh, loading }: { inc: IncidenciaOperativa; history?: Awaited<ReturnType<typeof opsService.historial>>; refresh: (m?: string) => void; loading: boolean }) {
   const router = useRouter();
   const { activeRole, profile } = useSession();
+  const opsStamp = stampFor(inc.estado.codigo, null);
   const plan = inc.planes_intervencion.find((p) => p.estado_plan === 'VIGENTE') ?? inc.planes_intervencion.at(-1);
   const asignacion = inc.asignaciones.find((a) => a.es_vigente);
 
@@ -86,6 +88,7 @@ function Detail({ inc, history, refresh, loading }: { inc: IncidenciaOperativa; 
               <StatusBadge code={inc.estado.codigo} name={inc.estado.nombre} color={inc.estado.color} size="md" />
               <PriorityBadge code={inc.prioridad?.codigo} name={inc.prioridad?.nombre} color={inc.prioridad?.color} />
               <IncidentFlags risk={inc.es_riesgo_inmediato} duplicate={inc.posible_duplicado} />
+              {opsStamp && inc.estado.codigo !== 'E01' && <Stamp label={opsStamp.label} tone={opsStamp.tone} size="lg" className="ml-1" />}
               {inc.numero_reprocesos > 0 && <ToneBadge tone="rojo">{inc.numero_reprocesos} reproceso{inc.numero_reprocesos === 1 ? '' : 's'}</ToneBadge>}
               {inc.numero_reaperturas > 0 && <ToneBadge tone="naranja">Reabierta {inc.numero_reaperturas}×</ToneBadge>}
             </div>
