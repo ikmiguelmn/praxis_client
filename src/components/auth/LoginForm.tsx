@@ -9,7 +9,7 @@ import { useSession } from '@/lib/session/SessionProvider';
 import { apiErrorMessage, apiFieldErrors } from '@/lib/apiError';
 import { AuthError, AuthField, AuthItem, AuthSubmit } from './AuthMotion';
 import PasswordField from './recovery/PasswordField';
-import { deviceIsRemembered, rememberDevice } from '@/lib/session/rememberDevice';
+import { deviceIsRemembered, rememberDevice, rememberedEmail } from '@/lib/session/rememberDevice';
 
 const noopSubscribe = () => () => {};
 
@@ -22,7 +22,10 @@ function returnUrlFromLocation(): string | undefined {
 export default function LoginForm() {
   const router = useRouter();
   const { startSession } = useSession();
-  const [email, setEmail] = useState('');
+  // Con "Recordar en este equipo" el correo del último ingreso queda escrito.
+  const storedEmail = useSyncExternalStore(noopSubscribe, rememberedEmail, () => '');
+  const [emailInput, setEmail] = useState<string | null>(null);
+  const email = emailInput ?? storedEmail;
   const [password, setPassword] = useState('');
   // Lo guardado en el navegador se lee sin romper la hidratación; la elección de la casilla tiene prioridad.
   const storedRemember = useSyncExternalStore(noopSubscribe, deviceIsRemembered, () => false);
@@ -58,7 +61,7 @@ export default function LoginForm() {
       const back = returnUrlFromLocation();
       // Al backend solo se envía la ruta; la consulta (filtros, pestañas) la conserva el frontend.
       const session = await authService.login({ email: email.trim(), password, return_url: back?.split('?')[0], recordar: remember });
-      rememberDevice(remember);
+      rememberDevice(remember, email.trim());
       await startSession(session);
       setState('success');
       setTimeout(() => {
