@@ -39,7 +39,7 @@ function TopBar() {
   return (
     // z-[60]: por encima del velo y de la segunda barra, para que no se difumine y su menú de usuario no quede debajo.
     <div className="relative z-[60] border-b border-praxis-line bg-white">
-      <div className="mx-auto flex max-w-[1440px] items-center gap-3 px-4 py-3 sm:gap-5 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-3 py-3 sm:gap-5 sm:px-6 lg:px-8">
         <Link href={profile?.ruta_inicio ?? '/panel'} className="flex shrink-0 items-center gap-3" aria-label="PRAXIS, ir al inicio">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/Logo2.png" alt="" className="h-9 w-9 object-contain" />
@@ -48,10 +48,10 @@ function TopBar() {
             <span className="block text-[10px] font-semibold text-slate-500">Gestión de infraestructura</span>
           </span>
         </Link>
-        <div className="mx-auto w-full max-w-xl">
+        <div className="mx-auto w-full min-w-0 max-w-xl flex-1">
           <GlobalSearch />
         </div>
-        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
           <ConnectionChip />
           <ThemeToggle />
           <NotificationBell />
@@ -83,6 +83,14 @@ function OfflineBanner() {
 }
 
 /** Shell institucional con doble barra superior (HU-2.1, HU-2.2). */
+/** Al entrar a la aplicación (tras el login o al abrirla) la vista arranca desde arriba. */
+function ScrollToTopOnEnter() {
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0 });
+  }, []);
+  return null;
+}
+
 export default function AppShell({ children }: { children: ReactNode }) {
   // El tema elegido solo aplica dentro de la aplicación; al salir (login, recuperación) se quita.
   useLayoutEffect(() => {
@@ -95,6 +103,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <AuthGuard>
       <div className="min-h-screen bg-praxis-surface text-slate-900">
+        <ScrollToTopOnEnter />
         <header className="sticky top-0 z-30">
           <OfflineBanner />
           <TopBar />

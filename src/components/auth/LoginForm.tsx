@@ -61,7 +61,11 @@ export default function LoginForm() {
       rememberDevice(remember);
       await startSession(session);
       setState('success');
-      setTimeout(() => router.replace(back ?? session.redirect_to ?? session.usuario.ruta_inicio ?? '/panel'), 450);
+      setTimeout(() => {
+        // En celular el formulario queda abajo; sin esto la aplicación abría a mitad de página.
+        window.scrollTo({ top: 0 });
+        router.replace(back ?? session.redirect_to ?? session.usuario.ruta_inicio ?? '/panel');
+      }, 450);
     } catch (err) {
       const fields = apiFieldErrors(err);
       setFieldErrors({ email: fields.email, password: fields.password });

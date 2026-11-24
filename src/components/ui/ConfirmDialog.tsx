@@ -121,7 +121,7 @@ export default function ConfirmHost() {
             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
           >
             <span className={`block h-1.5 bg-gradient-to-r ${tone.bar}`} aria-hidden="true" />
-            <div className="px-6 pb-6 pt-7 text-center sm:px-8">
+            <div className="px-5 pb-6 pt-7 text-center sm:px-8">
               <span className="relative mx-auto flex h-16 w-16 items-center justify-center">
                 {!reduceMotion && (
                   <motion.span
@@ -157,10 +157,10 @@ export default function ConfirmHost() {
               )}
 
               <div className="mt-7 grid grid-cols-2 gap-3">
-                <button ref={cancelRef} type="button" onClick={() => settle(false)} className="btn-secondary h-12 w-full">
+                <button ref={cancelRef} type="button" onClick={() => settle(false)} className="btn-secondary h-12 w-full whitespace-nowrap px-3">
                   {pending.cancelLabel ?? 'Cancelar'}
                 </button>
-                <button ref={confirmRef} type="button" onClick={() => settle(true)} className={`${tone.button} h-12 w-full`}>
+                <button ref={confirmRef} type="button" onClick={() => settle(true)} className={`${tone.button} h-12 w-full whitespace-nowrap px-3`}>
                   {pending.confirmLabel ?? 'Confirmar'}
                 </button>
               </div>

@@ -38,14 +38,14 @@ export default function UserMenu() {
         open={open}
         onClose={() => setOpen(false)}
         // Mismo ancho que el botón del usuario; en móvil el botón solo muestra el avatar y el panel usa un ancho fijo.
-        className="w-64 sm:left-0 sm:w-auto"
+        className="w-64 max-sm:fixed max-sm:left-auto max-sm:right-3 max-sm:top-[4.6rem] sm:left-0 sm:w-auto"
         trigger={
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             aria-expanded={open}
             aria-haspopup="menu"
-            className="flex items-center gap-3 rounded-2xl border border-praxis-line bg-white py-1.5 pl-1.5 pr-3 text-left transition hover:border-slate-300"
+            className="flex items-center gap-3 rounded-2xl border border-praxis-line bg-white p-1 text-left transition hover:border-slate-300 sm:py-1.5 sm:pl-1.5 sm:pr-3"
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-praxis-blue to-praxis-green text-xs font-bold text-white">
               {initials(profile.nombre)}
@@ -54,7 +54,7 @@ export default function UserMenu() {
               <span className="block max-w-[150px] truncate text-[13px] font-bold leading-tight text-slate-900">{profile.nombre}</span>
               <span className="block max-w-[150px] truncate text-[11px] text-slate-500">{profile.rol_activo?.nombre}</span>
             </span>
-            <ChevronDown className={`h-4 w-4 text-slate-400 transition ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+            <ChevronDown className={`hidden h-4 w-4 text-slate-400 transition sm:block ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
           </button>
         }
       >

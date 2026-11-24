@@ -18,7 +18,7 @@ export default function ThemeToggle() {
       aria-label={label}
       title={label}
       aria-pressed={dark}
-      className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-praxis-line bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+      className="relative flex h-10 w-10 shrink-0 sm:h-11 sm:w-11 items-center justify-center overflow-hidden rounded-xl border border-praxis-line bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
     >
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
