@@ -221,6 +221,7 @@ function Ticket({ result, ubicacion, categoria, subcategoria, reportante, still 
       <div className="relative rounded-t-md bg-white px-7 pb-6 pt-7">
         <header className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/Logo2.png" alt="" className="h-8 w-8 object-contain" />
             <div className="leading-tight">
               <p className="text-[15px] font-extrabold">PRAXIS</p>
