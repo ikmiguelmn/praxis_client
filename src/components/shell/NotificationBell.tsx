@@ -57,7 +57,8 @@ export default function NotificationBell() {
     <Popover
       open={open}
       onClose={() => setOpen(false)}
-      className="w-[min(380px,calc(100vw-2rem))]"
+      // En celular el panel no cuelga de la campana (se salía por la izquierda): ocupa el ancho de la pantalla bajo la barra.
+      className="w-[380px] max-sm:fixed max-sm:inset-x-3 max-sm:top-[4.6rem] max-sm:w-auto"
       trigger={
         <button
           type="button"
@@ -67,7 +68,7 @@ export default function NotificationBell() {
           }}
           aria-label={unread > 0 ? `Notificaciones, ${unread} sin leer` : 'Notificaciones'}
           aria-expanded={open}
-          className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-praxis-line bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+          className="relative flex h-10 w-10 items-center sm:h-11 sm:w-11 justify-center rounded-xl border border-praxis-line bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
         >
           <Bell className="h-5 w-5" aria-hidden="true" />
           <AnimatePresence>

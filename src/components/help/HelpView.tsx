@@ -89,14 +89,14 @@ export default function HelpView() {
         title="Aprende a reportar una falla en el campus"
         description="Guía rápida para radicar novedades de infraestructura, entender cada estado y resolver las dudas más comunes."
         actions={
-          <button type="button" onClick={() => window.print()} className="btn-secondary">
+          <button type="button" onClick={() => window.print()} className="btn-secondary print:hidden">
             <Printer className="h-4 w-4" aria-hidden="true" />
             Imprimir guía
           </button>
         }
       />
 
-      <div className="relative max-w-2xl">
+      <div className="relative max-w-2xl print:hidden">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" aria-hidden="true" />
         <label htmlFor="help-search" className="sr-only">
           Buscar en la ayuda
@@ -170,7 +170,7 @@ export default function HelpView() {
                       className="flex w-full items-center justify-between gap-4 px-6 py-5 text-left text-[15px] font-semibold text-slate-900 transition hover:bg-slate-50"
                     >
                       {faq.q}
-                      <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
+                      <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition print:hidden ${expanded ? 'rotate-180' : ''}`} aria-hidden="true" />
                     </button>
                   </h3>
                   <AnimatePresence initial={false}>
@@ -180,6 +180,8 @@ export default function HelpView() {
                       </motion.div>
                     )}
                   </AnimatePresence>
+                  {/* Al imprimir o guardar como PDF todas las respuestas salen desplegadas. */}
+                  {!expanded && <p className="hidden px-6 pb-5 text-sm leading-relaxed text-slate-600 print:block">{faq.a}</p>}
                 </div>
               );
             })}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'motion/react';
-import { Check, CircleAlert, Info, MapPin, Send, ShieldAlert, Siren, Trash2 } from 'lucide-react';
+import { Camera, Check, CircleAlert, FileText, Info, MapPin, Send, ShieldAlert, Siren, Tag, Trash2, Wrench } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
@@ -517,7 +517,7 @@ function ReportFormBody({ sedes, categorias }: { sedes: Sede[]; categorias: Cate
               </Link>
               <motion.button type="submit" disabled={uploading} whileHover={uploading ? undefined : { y: -1 }} whileTap={{ scale: 0.98 }} className={`${form.riesgo ? 'btn-danger' : 'btn-primary'} group relative h-12 overflow-hidden px-7`}>
                 <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 -skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-0 transition-all duration-700 group-hover:left-full group-hover:opacity-100" />
-                {uploading ? 'Esperando la carga de fotos…' : 'Revisar y enviar reporte'}
+                {uploading ? 'Subiendo fotos…' : 'Enviar reporte'}
                 <Send className="h-4 w-4 transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" aria-hidden="true" />
               </motion.button>
               {hasDraft ? (
@@ -576,27 +576,88 @@ function ReportFormBody({ sedes, categorias }: { sedes: Sede[]; categorias: Cate
         open={confirming}
         onClose={() => setConfirming(false)}
         busy={sending}
+        size="lg"
         icon={form.riesgo ? <Siren className="h-5 w-5 text-red-600" /> : <Send className="h-5 w-5" />}
-        title={form.riesgo ? 'Confirmar reporte con riesgo inmediato' : 'Confirmar envío del reporte'}
-        description="Revisa los datos antes de radicar. Después podrás seguirlo desde Mis solicitudes."
+        title={form.riesgo ? 'Confirma tu reporte con riesgo inmediato' : 'Confirma tu reporte'}
+        description="Revisa que todo esté correcto. Al enviarlo recibirás un código para seguirlo desde Mis solicitudes."
         footer={
           <>
             <button type="button" className="btn-secondary" onClick={() => setConfirming(false)} disabled={sending}>
-              Seguir editando
+              Editar
             </button>
             <button type="button" className={form.riesgo ? 'btn-danger' : 'btn-primary'} onClick={submit} disabled={sending}>
-              {sending ? 'Radicando…' : 'Radicar reporte'}
+              <Send className="h-4 w-4" aria-hidden="true" />
+              {sending ? 'Enviando…' : 'Enviar reporte'}
             </button>
           </>
         }
       >
-        <dl className="grid gap-4 text-sm sm:grid-cols-2">
-          <Summary label="Ubicación" value={[edificio?.nombre, piso?.nombre, espacio?.nombre].filter(Boolean).join(' · ')} />
-          <Summary label="Categoría" value={[categoria?.nombre, subcategoria?.nombre].filter(Boolean).join(' / ')} />
-          <Summary label="Descripción" value={form.descripcion} wide />
-          <Summary label="Evidencias" value={`${evidencias.length} archivo${evidencias.length === 1 ? '' : 's'}`} />
-          {form.riesgo && <Summary label="Riesgo inmediato" value={form.descripcionRiesgo} tone="danger" />}
-        </dl>
+        <div className="space-y-5 text-sm">
+          {form.riesgo && (
+            <div className="flex items-start gap-3 rounded-xl border-l-4 border-red-600 bg-red-50 px-4 py-3">
+              <Siren className="mt-0.5 h-5 w-5 shrink-0 text-red-600" aria-hidden="true" />
+              <div>
+                <p className="font-bold text-red-800">Riesgo inmediato para las personas</p>
+                <p className="mt-0.5 whitespace-pre-line text-red-700">{form.descripcionRiesgo}</p>
+                <p className="mt-1 text-xs font-semibold text-red-700">Quedará en prioridad crítica y se alertará a la mesa de ayuda y a coordinación.</p>
+              </div>
+            </div>
+          )}
+
+          <ReviewBlock title="Ubicación exacta" icon={<MapPin className="h-4 w-4" />}>
+            <ol className="flex flex-wrap items-center gap-1.5">
+              {[sede?.nombre, edificio?.nombre, piso?.nombre].filter(Boolean).map((part) => (
+                <li key={part} className="flex items-center gap-1.5 text-slate-600">
+                  {part}
+                  <span className="text-slate-300" aria-hidden="true">›</span>
+                </li>
+              ))}
+              <li className="font-bold text-slate-900">
+                {espacio?.nombre} <span className="font-mono text-xs font-medium text-slate-400">{espacio?.codigo}</span>
+              </li>
+            </ol>
+          </ReviewBlock>
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <ReviewBlock title="Tipo de daño" icon={<Wrench className="h-4 w-4" />}>
+              <p className="font-bold text-slate-900">{[categoria?.nombre, subcategoria?.nombre].filter(Boolean).join(' / ')}</p>
+              {categoria?.especialidad && <p className="mt-0.5 text-xs text-slate-500">Lo atenderá: {categoria.especialidad.nombre}</p>}
+            </ReviewBlock>
+            <ReviewBlock title="Título" icon={<Tag className="h-4 w-4" />}>
+              <p className="font-semibold text-slate-900">{form.resumen.trim() || `${subcategoria?.nombre ?? categoria?.nombre ?? ''} en ${espacio?.nombre ?? ''}`.slice(0, 150)}</p>
+              {!form.resumen.trim() && <p className="mt-0.5 text-xs text-slate-500">Se genera a partir de la categoría y el espacio.</p>}
+            </ReviewBlock>
+          </div>
+
+          <ReviewBlock title="Descripción del daño" icon={<FileText className="h-4 w-4" />}>
+            <p className="whitespace-pre-line leading-relaxed text-slate-800">{form.descripcion.trim()}</p>
+          </ReviewBlock>
+
+          <ReviewBlock title={`Fotos y archivos (${evidencias.length})`} icon={<Camera className="h-4 w-4" />}>
+            {evidencias.length === 0 ? (
+              <p className="text-slate-500">{requiresPhoto ? 'Esta categoría exige foto.' : 'No adjuntaste fotos. Ayudan a que el técnico llegue preparado.'}</p>
+            ) : (
+              <ul className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+                {evidencias.map((ev) => (
+                  <li key={ev.id} className="overflow-hidden rounded-lg border border-praxis-line bg-slate-50" title={ev.nombre_original}>
+                    {ev.mime_type.startsWith('image/') ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={ev.url} alt={ev.nombre_original} className="aspect-square w-full object-cover" />
+                    ) : (
+                      <span className="flex aspect-square items-center justify-center p-1 text-center text-[10px] font-semibold text-slate-500">PDF</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </ReviewBlock>
+
+          {hasMatches && diferente && (
+            <p className="rounded-xl bg-amber-50 px-4 py-3 text-amber-800">
+              Indicaste que es un problema diferente a las solicitudes abiertas en este espacio.
+            </p>
+          )}
+        </div>
       </Modal>
     </div>
   );
@@ -673,11 +734,15 @@ function SelectField({ label, error, field, children }: { label: string; error?:
   );
 }
 
-function Summary({ label, value, wide, tone }: { label: string; value: string; wide?: boolean; tone?: 'danger' }) {
+/** Bloque de la revisión final del reporte. */
+function ReviewBlock({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className={`rounded-xl p-3 ${wide ? 'sm:col-span-2' : ''} ${tone === 'danger' ? 'bg-red-50' : 'bg-slate-50'}`}>
-      <dt className={`text-xs font-semibold ${tone === 'danger' ? 'text-red-700' : 'text-slate-500'}`}>{label}</dt>
-      <dd className="mt-1 whitespace-pre-line font-medium text-slate-900">{value || '—'}</dd>
-    </div>
+    <section className="rounded-xl border border-praxis-line bg-slate-50/60 p-4">
+      <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-slate-500">
+        <span className="text-sky-700">{icon}</span>
+        {title}
+      </h3>
+      {children}
+    </section>
   );
 }

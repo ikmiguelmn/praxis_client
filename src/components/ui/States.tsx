@@ -4,13 +4,15 @@ import type { ReactNode } from 'react';
 import { motion } from 'motion/react';
 import { CloudOff, Inbox, RotateCw } from 'lucide-react';
 import PraxisLoader from './PraxisLoader';
+import { useLoaderTheme } from '@/lib/theme';
 
 /** Carga de una sección con el loader institucional. */
 export function LoadingState({ label = 'Cargando', compact = false }: { label?: string; compact?: boolean }) {
+  const theme = useLoaderTheme();
   return (
     <div className={`flex flex-col items-center justify-center ${compact ? 'py-10' : 'py-20'}`} role="status">
-      <div className="rounded-3xl bg-[#0D111D] px-8 py-6 shadow-xl shadow-slate-900/10">
-        <PraxisLoader size={compact ? 52 : 72} label={label} />
+      <div className={`rounded-3xl px-8 py-6 ${theme === 'dark' ? 'bg-[#141414]' : 'bg-white shadow-xl shadow-slate-900/10'}`}>
+        <PraxisLoader size={compact ? 68 : 94} label={label} inverse={theme === 'dark'} />
       </div>
     </div>
   );

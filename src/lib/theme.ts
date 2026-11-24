@@ -49,3 +49,14 @@ const subscribe = (l: () => void) => {
 export function useTheme(): Theme {
   return useSyncExternalStore(subscribe, getTheme, () => 'light');
 }
+
+const AUTH_PATHS = ['/auth', '/login', '/recuperar-password', '/restablecer-password'];
+const noop = () => () => {};
+const onAuthPage = () => AUTH_PATHS.some((p) => window.location.pathname.startsWith(p));
+
+/** Tema del loader: el login y la recuperación siempre son claros; dentro de la aplicación sigue el tema elegido. */
+export function useLoaderTheme(): Theme {
+  const theme = useTheme();
+  const auth = useSyncExternalStore(noop, onAuthPage, () => true);
+  return auth ? 'light' : theme;
+}

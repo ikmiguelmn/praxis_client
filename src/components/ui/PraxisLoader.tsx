@@ -11,6 +11,8 @@ interface PraxisLoaderProps {
   label?: string | null;
   /** Partículas sutiles alrededor del logo (como en el video) */
   particles?: boolean;
+  /** Sobre fondo oscuro: las partes azul marino del logo se pintan de blanco. */
+  inverse?: boolean;
 }
 
 const font = Montserrat({ subsets: ["latin"], weight: ["500", "600"] });
@@ -71,6 +73,7 @@ export default function PraxisLoader({
   size = 202,
   label = "Cargando",
   particles = true,
+  inverse = false,
 }: PraxisLoaderProps) {
   // IDs únicos por instancia (los ":" de useId rompen url(#...))
   const uid = useId().replace(/:/g, "");
@@ -352,7 +355,7 @@ export default function PraxisLoader({
               />
 
               {/* P 3D visible desde el inicio */}
-              <path d={NAVY_P} fill={NAVY} fillRule="evenodd" className="p" />
+              <path d={NAVY_P} fill={inverse ? "#FFFFFF" : NAVY} fillRule="evenodd" className="p" />
 
               {/* 3 · check → escuadra verde → marco azul */}
               <path

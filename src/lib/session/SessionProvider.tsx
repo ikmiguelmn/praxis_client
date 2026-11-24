@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { authService } from '@/services/authService';
-import { forgetDevice, sessionShouldEnd } from './rememberDevice';
+import { forgetDevice, sessionShouldEnd, touchDevice } from './rememberDevice';
 import { onSessionChange, setActiveRoleHeader } from '@/services/api';
 import { apiStatus } from '@/lib/apiError';
 import type { MenuItem, Profile, RoleCode, SessionResponse } from '@/types/auth';
@@ -171,6 +171,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setStatus('anonymous');
     }
   }, []);
+
+  // Mientras haya una sesión abierta se registra la actividad, para distinguir "navegador abierto" de
+  // "navegador cerrado y vuelto a abrir" cuando no se pidió recordar el equipo.
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    touchDevice();
+    const id = window.setInterval(touchDevice, 60_000);
+    const onHide = () => touchDevice();
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('pagehide', onHide);
+    };
+  }, [status]);
 
   useEffect(
     () =>

@@ -52,7 +52,7 @@ export default function AuthLayout({ title, subtitle, children, top, showcaseTit
           >
             <motion.div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0"
+              className="pointer-events-none absolute inset-0 hidden sm:block"
               initial={reduceMotion ? false : { opacity: 0, scale: 1.06 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.8, duration: 0.5 }}

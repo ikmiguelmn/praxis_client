@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import AuthLayout from './AuthLayout';
 import LoginNotice from './LoginNotice';
 import LoginForm from './LoginForm';
+import ResumeSession from './ResumeSession';
 import { useSession } from '@/lib/session/SessionProvider';
 
 export default function LoginPage() {
@@ -12,11 +13,15 @@ export default function LoginPage() {
   const { signedOut } = useSession();
 
   return (
-    <AuthLayout title="Acceso a la Plataforma" subtitle="Inicia sesión con tus credenciales institucionales">
-      <Suspense fallback={null}>
-        <LoginNotice />
-      </Suspense>
-      <LoginForm key={signedOut ? 'after-logout' : 'login'} />
-    </AuthLayout>
+    <Suspense fallback={null}>
+      <ResumeSession>
+        <AuthLayout title="Acceso a la Plataforma" subtitle="Inicia sesión con tus credenciales institucionales">
+          <Suspense fallback={null}>
+            <LoginNotice />
+          </Suspense>
+          <LoginForm key={signedOut ? 'after-logout' : 'login'} />
+        </AuthLayout>
+      </ResumeSession>
+    </Suspense>
   );
 }
