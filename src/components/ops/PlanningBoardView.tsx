@@ -12,35 +12,58 @@ import { initials } from '@/lib/format';
 import IncidentTable from './IncidentTable';
 import QueueStats, { type QueueStat } from './QueueStats';
 
+const ACTIVE = 'E05,E06,E07,E08,E09,E10,E11,E12,E13,E14,E18';
+const INSPECCION = 'E06,E07';
+
 const TABS = [
   { key: 'asignar', label: 'Por asignar', estado: 'E05', cta: 'Asignar' },
-  { key: 'diagnostico', label: 'Decisión de diagnóstico', estado: 'E07', cta: 'Revisar' },
+  { key: 'diagnostico', label: 'Inspección y diagnóstico', estado: INSPECCION, cta: 'Revisar' },
   { key: 'programadas', label: 'Programadas', estado: 'E10,E11', cta: 'Ver' },
   { key: 'recursos', label: 'Recursos', estado: 'E08,E09', cta: 'Gestionar' },
   { key: 'correccion', label: 'En corrección', estado: 'E13', cta: 'Planificar' },
   { key: 'suspendidas', label: 'Suspendidas', estado: 'E18', cta: 'Reanudar' },
 ] as const;
-const ACTIVE = 'E05,E06,E07,E08,E09,E10,E11,E12,E13,E14,E18';
+
+type FilterKey = 'activas' | (typeof TABS)[number]['key'];
+
+const FILTERS: Record<FilterKey, { estado: string; cta: string }> = {
+  activas: { estado: ACTIVE, cta: 'Ver' },
+  asignar: TABS[0],
+  diagnostico: TABS[1],
+  programadas: TABS[2],
+  recursos: TABS[3],
+  correccion: TABS[4],
+  suspendidas: TABS[5],
+};
 
 /** Panel de control operativo de coordinación (E06: HU-6.1 a 6.3, KAN-217). */
 export default function PlanningBoardView() {
-  const [tab, setTab] = useState<(typeof TABS)[number]['key']>('asignar');
-  const current = TABS.find((t) => t.key === tab)!;
+  const [filter, setFilter] = useState<FilterKey>('asignar');
+  const current = FILTERS[filter];
+  const multiState = current.estado.includes(',');
 
   const counts = useApiQuery('plan:conteos', async () => {
     const totals = await Promise.all(
-      [ACTIVE, 'E05', 'E06,E07', 'E10,E11', ...TABS.map((t) => t.estado)].map(async (estado) => (await opsService.consola({ estado, per_page: 1 })).meta.total),
+      [ACTIVE, 'E05', INSPECCION, 'E10,E11', ...TABS.map((t) => t.estado)].map(async (estado) => (await opsService.consola({ estado, per_page: 1 })).meta.total),
     );
     const riesgo = (await opsService.consola({ estado: 'E05', riesgo_inmediato: true, per_page: 1 })).meta.total;
     return { activas: totals[0], asignar: totals[1], inspeccion: totals[2], ejecucion: totals[3], tabs: totals.slice(4), riesgo };
   });
-  const list = useApiQuery(`plan:${tab}`, () => opsService.consola({ estado: current.estado, per_page: 50 }));
+  const list = useApiQuery(`plan:${filter}`, () => opsService.consola({ estado: current.estado, per_page: 50 }));
   const crews = useApiQuery('plan:tecnicos', () => opsService.tecnicosDisponibles());
 
   const reload = () => {
     void counts.reload();
     void list.reload();
     void crews.reload();
+  };
+
+  const selectFilter = (key: string) => {
+    if (key === '') {
+      setFilter('asignar');
+      return;
+    }
+    if (key in FILTERS) setFilter(key as FilterKey);
   };
 
   const c = counts.data;
@@ -71,24 +94,28 @@ export default function PlanningBoardView() {
         }
       />
 
-      <QueueStats stats={stats} active={['asignar', 'diagnostico', 'programadas'].includes(tab) ? tab : ''} onSelect={(k) => TABS.some((t) => t.key === k) && setTab(k as typeof tab)} />
+      <QueueStats
+        stats={stats}
+        active={['activas', 'asignar', 'diagnostico', 'programadas'].includes(filter) ? filter : ''}
+        onSelect={selectFilter}
+      />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="card overflow-hidden">
           <div className="flex flex-col gap-3 border-b border-praxis-line px-5 py-4">
             <div className="flex items-center gap-3">
-              <h2 className="font-bold text-slate-900">Atención prioritaria</h2>
+              <h2 className="font-bold text-slate-900">{filter === 'activas' ? 'Incidencias activas' : 'Atención prioritaria'}</h2>
               {c?.riesgo ? <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-700">{c.riesgo} críticas sin asignar</span> : null}
             </div>
             <div className="flex flex-wrap gap-2" role="tablist" aria-label="Etapas">
               {TABS.map((t, i) => {
-                const active = t.key === tab;
+                const active = t.key === filter;
                 return (
                   <button
                     key={t.key}
                     role="tab"
                     aria-selected={active}
-                    onClick={() => setTab(t.key)}
+                    onClick={() => setFilter(t.key)}
                     className={`relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${active ? 'text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
                   >
                     {active && <motion.span layoutId="plan-tab" className="absolute inset-0 rounded-full bg-praxis-navy" />}
@@ -108,9 +135,9 @@ export default function PlanningBoardView() {
                 <div className={list.loading ? 'opacity-60' : ''}>
                   <IncidentTable
                     rows={list.data.data}
-                    showState={false}
+                    showState={multiState}
                     action={(row) => (
-                      <Link href={`/incidencias/${row.id}`} className={`${tab === 'asignar' ? 'btn-primary' : 'btn-secondary'} px-3 py-1.5 text-xs`}>
+                      <Link href={`/incidencias/${row.id}`} className={`${filter === 'asignar' ? 'btn-primary' : 'btn-secondary'} px-3 py-1.5 text-xs`}>
                         {current.cta}
                       </Link>
                     )}
