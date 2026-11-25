@@ -44,7 +44,7 @@ function Shell({ status, children }: { status: Status; children: React.ReactNode
   );
 }
 
-/** Restablecimiento desde el enlace del correo (alternativa al código). */
+/** Restablecimiento desde el enlace del correo. */
 export default function ResetPasswordFlow({ token }: { token: string }) {
   const router = useRouter();
   const [status, setStatus] = useState<Status>('checking');

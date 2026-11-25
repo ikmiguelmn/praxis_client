@@ -2,10 +2,10 @@
 
 import { Fragment } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Check, KeyRound, LockKeyhole, Mail, type LucideIcon } from 'lucide-react';
+import { Check, LockKeyhole, Mail, MailOpen, type LucideIcon } from 'lucide-react';
 
-export const RECOVERY_STEPS = ['Correo', 'Código', 'Contraseña'] as const;
-const ICONS: LucideIcon[] = [Mail, KeyRound, LockKeyhole];
+export const RECOVERY_STEPS = ['Correo', 'Enlace', 'Contraseña'] as const;
+const ICONS: LucideIcon[] = [Mail, MailOpen, LockKeyhole];
 
 /** Progreso del restablecimiento: un nodo con ícono por paso unido por conectores que se llenan; un valor mayor al total marca todo como completado. */
 export default function StepIndicator({ current }: { current: number }) {
