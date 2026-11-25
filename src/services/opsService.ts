@@ -83,6 +83,8 @@ export const opsService = {
     body: { decision_requerida: string; requiere_autorizacion: boolean; es_emergencia?: boolean; items: { recurso_nombre: string; cantidad: number; unidad: string; costo_estimado?: number }[] },
   ) => post(`/incidencias/${id}/solicitudes-recursos`, body),
   autorizacionesPendientes: async (): Promise<SolicitudRecursos[]> => (await api.get<{ data: SolicitudRecursos[] }>('/autorizaciones/pendientes')).data.data,
+  autorizacionesHistorico: async (params?: { resultado?: string; page?: number }): Promise<Paginated<SolicitudRecursos>> =>
+    (await api.get<Paginated<SolicitudRecursos>>('/autorizaciones/historico', { params: { ...params, per_page: 50 } })).data,
   dictamen: (
     solicitudId: number,
     body: { resultado: 'APROBADA' | 'RECHAZADA'; justificacion?: string; recursos_disponibles?: boolean; accion_rechazo?: string; condiciones_reanudacion?: string; fecha_programada?: string; hora_inicio?: string; hora_fin?: string },

@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowUpRight, BadgeDollarSign, Gavel, Siren } from 'lucide-react';
+import { ArrowUpRight, BadgeDollarSign, Gavel, History, Siren } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { EmptyState, QueryBoundary } from '@/components/ui/States';
-import { PriorityBadge } from '@/components/ui/Badges';
+import { PriorityBadge, ToneBadge } from '@/components/ui/Badges';
 import { toast } from '@/components/ui/Toaster';
 import { opsService } from '@/services/opsService';
 import { useApiQuery } from '@/lib/useApiQuery';
@@ -21,26 +21,97 @@ const RANGES = [
   { key: 'mayor', label: 'Más de $2.000.000', test: (v: number) => v > 2_000_000 },
 ];
 
-/** Bandeja de autorizaciones pendientes con filtro por monto y panel de dictamen (HU-8.2, KAN-257). */
+const RESULTADOS = [
+  { key: '', label: 'Todas' },
+  { key: 'APROBADA', label: 'Aprobadas' },
+  { key: 'RECHAZADA', label: 'Rechazadas' },
+] as const;
+
+type Vista = 'pendientes' | 'historico';
+
+/** Bandeja de autorizaciones pendientes e histórico de dictámenes (HU-8.2, KAN-257). */
 export default function AuthorizationsView() {
-  const query = useApiQuery('autorizaciones', opsService.autorizacionesPendientes);
+  const [vista, setVista] = useState<Vista>('pendientes');
   const [range, setRange] = useState('todas');
+  const [resultado, setResultado] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
+
+  const pendientes = useApiQuery('autorizaciones', opsService.autorizacionesPendientes);
+  const historico = useApiQuery(`autorizaciones:historico:${resultado}`, () => opsService.autorizacionesHistorico({ resultado: resultado || undefined }));
+
   const filter = RANGES.find((r) => r.key === range)!;
-  const list = (query.data ?? [])
-    .filter((s) => filter.test(s.costo_total_estimado ?? 0))
-    .sort((a, b) => Number(b.es_emergencia) - Number(a.es_emergencia) || (b.costo_total_estimado ?? 0) - (a.costo_total_estimado ?? 0));
+  const raw = vista === 'pendientes' ? (pendientes.data ?? []) : (historico.data?.data ?? []);
+
+  const list = useMemo(() => {
+    const filtered = raw.filter((s) => filter.test(s.costo_total_estimado ?? 0));
+    if (vista === 'pendientes') {
+      return [...filtered].sort((a, b) => Number(b.es_emergencia) - Number(a.es_emergencia) || (b.costo_total_estimado ?? 0) - (a.costo_total_estimado ?? 0));
+    }
+    return filtered;
+  }, [raw, filter, vista]);
+
   const selected = list.find((s) => s.id === selectedId) ?? list[0];
-  const total = (query.data ?? []).reduce((acc, s) => acc + (s.costo_total_estimado ?? 0), 0);
+  const total = raw.reduce((acc, s) => acc + (s.costo_total_estimado ?? 0), 0);
+  const loading = vista === 'pendientes' ? pendientes.initialLoading : historico.initialLoading;
+  const error = vista === 'pendientes' ? pendientes.error : historico.error;
+  const reload = () => void (vista === 'pendientes' ? pendientes.reload() : historico.reload());
+
+  const switchVista = (next: Vista) => {
+    setVista(next);
+    setSelectedId(null);
+    setRange('todas');
+    if (next === 'pendientes') setResultado('');
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         crumbs={[{ label: 'Autorizaciones' }]}
-        title="Autorizaciones pendientes"
-        description="Dictamina las solicitudes de recursos que requieren aprobación administrativa o presupuestal."
-        badge={query.data && <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-200">{query.data.length} por dictaminar · {formatMoney(total)}</span>}
+        title={vista === 'pendientes' ? 'Autorizaciones pendientes' : 'Histórico de autorizaciones'}
+        description={
+          vista === 'pendientes'
+            ? 'Dictamina las solicitudes de recursos que requieren aprobación administrativa o presupuestal.'
+            : 'Consulta los dictámenes ya emitidos: aprobaciones, rechazos, montos y responsables.'
+        }
+        badge={
+          vista === 'pendientes'
+            ? pendientes.data && (
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-200">
+                  {pendientes.data.length} por dictaminar · {formatMoney(total)}
+                </span>
+              )
+            : historico.data && (
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 ring-1 ring-slate-200">
+                  {historico.data.meta.total} dictaminadas
+                </span>
+              )
+        }
       />
+
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Vista de autorizaciones">
+        {(
+          [
+            { key: 'pendientes' as const, label: 'Pendientes', icon: Gavel },
+            { key: 'historico' as const, label: 'Histórico', icon: History },
+          ] as const
+        ).map((t) => {
+          const active = vista === t.key;
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => switchVista(t.key)}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${active ? 'bg-praxis-navy text-white' : 'bg-white text-slate-600 ring-1 ring-praxis-line hover:bg-slate-50'}`}
+            >
+              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por monto">
         {RANGES.map((r) => (
@@ -50,23 +121,50 @@ export default function AuthorizationsView() {
         ))}
       </div>
 
-      <QueryBoundary loading={query.initialLoading} error={query.error} onRetry={query.reload} label="Cargando autorizaciones">
+      {vista === 'historico' && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por resultado">
+          {RESULTADOS.map((r) => (
+            <button
+              key={r.key || 'todas'}
+              type="button"
+              aria-pressed={resultado === r.key}
+              onClick={() => {
+                setResultado(r.key);
+                setSelectedId(null);
+              }}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${resultado === r.key ? 'bg-praxis-navy text-white' : 'bg-white text-slate-600 ring-1 ring-praxis-line hover:bg-slate-50'}`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <QueryBoundary loading={loading} error={error} onRetry={reload} label="Cargando autorizaciones">
         {list.length === 0 ? (
           <div className="card">
-            <EmptyState icon={<Gavel className="h-7 w-7" />} title="Sin solicitudes por dictaminar" description="Cuando coordinación pida recursos que requieren autorización aparecerán aquí." />
+            <EmptyState
+              icon={vista === 'pendientes' ? <Gavel className="h-7 w-7" /> : <History className="h-7 w-7" />}
+              title={vista === 'pendientes' ? 'Sin solicitudes por dictaminar' : 'Sin dictámenes en el histórico'}
+              description={
+                vista === 'pendientes'
+                  ? 'Cuando coordinación pida recursos que requieren autorización aparecerán aquí.'
+                  : 'Cuando se emitan dictámenes aparecerán aquí con su resultado y responsable.'
+              }
+            />
           </div>
         ) : (
           <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
             <ul className="space-y-3">
               {list.map((s, i) => (
                 <motion.li key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                  <RequestCard s={s} active={selected?.id === s.id} onClick={() => setSelectedId(s.id)} />
+                  <RequestCard s={s} active={selected?.id === s.id} onClick={() => setSelectedId(s.id)} showResult={vista === 'historico'} />
                 </motion.li>
               ))}
             </ul>
             <AnimatePresence mode="wait">
               {selected && (
-                <motion.section key={selected.id} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="card p-6 lg:sticky lg:top-44">
+                <motion.section key={`${vista}-${selected.id}`} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }} className="card p-6 lg:sticky lg:top-44">
                   <div className="mb-5 flex items-start justify-between gap-3">
                     <div>
                       <p className="font-mono text-xs font-bold text-slate-500">{selected.incidencia?.codigo_ticket}</p>
@@ -82,14 +180,19 @@ export default function AuthorizationsView() {
                       </Link>
                     )}
                   </div>
-                  <DictamenForm
-                    solicitud={selected}
-                    onDone={(message) => {
-                      toast(message);
-                      setSelectedId(null);
-                      void query.reload();
-                    }}
-                  />
+                  {vista === 'pendientes' ? (
+                    <DictamenForm
+                      solicitud={selected}
+                      onDone={(message) => {
+                        toast(message);
+                        setSelectedId(null);
+                        void pendientes.reload();
+                        void historico.reload();
+                      }}
+                    />
+                  ) : (
+                    <DictamenSummary solicitud={selected} />
+                  )}
                 </motion.section>
               )}
             </AnimatePresence>
@@ -100,7 +203,43 @@ export default function AuthorizationsView() {
   );
 }
 
-function RequestCard({ s, active, onClick }: { s: SolicitudRecursos; active: boolean; onClick: () => void }) {
+function DictamenSummary({ solicitud }: { solicitud: SolicitudRecursos }) {
+  const approved = solicitud.resultado_dictamen === 'APROBADA';
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <ToneBadge tone={approved ? 'verde' : 'rojo'}>{approved ? 'Aprobada' : 'Rechazada'}</ToneBadge>
+        {approved && solicitud.recursos_disponibles != null && (
+          <ToneBadge tone={solicitud.recursos_disponibles ? 'cian' : 'naranja'}>
+            {solicitud.recursos_disponibles ? 'Recursos disponibles' : 'Pendiente de compra'}
+          </ToneBadge>
+        )}
+      </div>
+      <dl className="grid gap-3 text-sm">
+        <div>
+          <dt className="text-xs font-semibold text-slate-500">Dictaminó</dt>
+          <dd className="mt-0.5 font-medium text-slate-900">{solicitud.autorizador?.name ?? '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold text-slate-500">Fecha del dictamen</dt>
+          <dd className="mt-0.5 font-medium text-slate-900">{solicitud.fecha_dictamen ? formatRelative(solicitud.fecha_dictamen) : '—'}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold text-slate-500">Monto</dt>
+          <dd className="mt-0.5 text-lg font-extrabold tabular-nums text-slate-900">{formatMoney(solicitud.costo_total_estimado)}</dd>
+        </div>
+        {solicitud.justificacion_dictamen && (
+          <div>
+            <dt className="text-xs font-semibold text-slate-500">Justificación</dt>
+            <dd className="mt-0.5 leading-relaxed text-slate-700">{solicitud.justificacion_dictamen}</dd>
+          </div>
+        )}
+      </dl>
+    </div>
+  );
+}
+
+function RequestCard({ s, active, onClick, showResult }: { s: SolicitudRecursos; active: boolean; onClick: () => void; showResult?: boolean }) {
   return (
     <button
       type="button"
@@ -119,9 +258,13 @@ function RequestCard({ s, active, onClick }: { s: SolicitudRecursos; active: boo
                 Emergencia
               </span>
             )}
+            {showResult && s.resultado_dictamen && (
+              <ToneBadge tone={s.resultado_dictamen === 'APROBADA' ? 'verde' : 'rojo'}>{s.resultado_dictamen === 'APROBADA' ? 'Aprobada' : 'Rechazada'}</ToneBadge>
+            )}
           </p>
           <p className="mt-1.5 truncate font-semibold text-slate-900">{s.incidencia?.resumen}</p>
           <p className="mt-0.5 line-clamp-2 text-sm text-slate-500">{s.decision_requerida}</p>
+          {showResult && s.fecha_dictamen && <p className="mt-1 text-[11px] text-slate-400">Dictamen · {formatRelative(s.fecha_dictamen)}</p>}
         </div>
         <span className="flex shrink-0 flex-col items-end">
           <span className="flex items-center gap-1 text-lg font-extrabold tabular-nums text-slate-900">
