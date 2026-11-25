@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from 'motion/react';
-import { PASSWORD_RULES, passedRules } from '@/lib/passwordPolicy';
+import { PASSWORD_RULES, passedRules, type PasswordRule } from '@/lib/passwordPolicy';
 
 const STRENGTH = [
   { label: 'Muy débil', color: '#EF4444' },
@@ -12,11 +12,12 @@ const STRENGTH = [
 ];
 
 /** Medidor y requisitos compactos que se actualizan mientras la persona escribe. */
-export default function PasswordRequirements({ id, password }: { id: string; password: string }) {
+export default function PasswordRequirements({ id, password, rules = PASSWORD_RULES }: { id: string; password: string; rules?: PasswordRule[] }) {
   const reduceMotion = useReducedMotion();
-  const passed = passedRules(password);
-  const ratio = passed.size / PASSWORD_RULES.length;
-  const level = STRENGTH[Math.max(passed.size - 1, 0)];
+  const passed = passedRules(password, rules);
+  const ratio = passed.size / rules.length;
+  // El medidor escala al número de reglas activas: cumplirlas todas siempre es "Cumple la política".
+  const level = password ? STRENGTH[Math.round(ratio * (STRENGTH.length - 1))] : STRENGTH[0];
 
   return (
     <div id={id} className="space-y-2.5 rounded-xl border border-[#D7E2ED] bg-[#F7FAFC] p-3">
@@ -34,7 +35,7 @@ export default function PasswordRequirements({ id, password }: { id: string; pas
         </span>
       </div>
       <ul className="grid grid-cols-2 gap-x-3 gap-y-1" aria-label="Requisitos de la contraseña">
-        {PASSWORD_RULES.map((rule) => {
+        {rules.map((rule) => {
           const ok = passed.has(rule.id);
           return (
             <li key={rule.id} className={`flex items-center gap-1.5 text-[11px] ${ok ? 'text-slate-800' : 'text-slate-500'}`}>
