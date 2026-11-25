@@ -71,6 +71,7 @@ export interface SolicitudRecursos {
   recursos_disponibles?: boolean | null;
   fecha_dictamen?: string | null;
   solicitante?: Persona;
+  autorizador?: Persona | null;
   fecha_solicitud?: string;
   created_at?: string;
   incidencia?: { id: string; codigo_ticket: string; resumen: string; estado: EstadoRef; prioridad?: PrioridadRef | null };
