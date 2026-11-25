@@ -22,9 +22,9 @@ export default function RoleSwitcher({ onDone }: { onDone?: () => void }) {
     setSwitching(true);
     setError('');
     try {
-      const current = await switchRole(role);
+      await switchRole(role);
       onDone?.();
-      router.push(current.ruta_inicio ?? '/panel');
+      router.push('/panel');
     } catch (err) {
       setError(apiErrorMessage(err, 'No se pudo cambiar de rol.'));
     } finally {
