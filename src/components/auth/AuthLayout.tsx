@@ -85,10 +85,6 @@ export default function AuthLayout({ title, subtitle, children, top, showcaseTit
           </motion.div>
         </div>
 
-        {/* HU-1.8: sin distintivo de "Conexión cifrada TLS"; el HTTPS lo garantiza la infraestructura. */}
-        <footer className="relative z-10 flex justify-center px-6 pb-5 text-[11px] text-slate-500">
-          <span>Sede Campus Central, Mesa de Ayuda MEP</span>
-        </footer>
       </section>
     </main>
   );
