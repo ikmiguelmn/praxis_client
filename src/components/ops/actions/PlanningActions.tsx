@@ -38,7 +38,7 @@ export default function PlanningActions(ctx: ActionContext) {
     coord && code === 'E10' && hasPlan && (
       <ActionButton key="r" icon={CalendarClock} label="Reprogramar intervención" hint="Guarda la fecha anterior y el motivo" onClick={() => setDialog('reprogramar')} />
     ),
-    canReassign && <ActionButton key="ra" icon={UserRoundCog} label="Reasignar técnico" hint="Requiere motivo (RN-025)" onClick={() => setDialog('asignar')} />,
+    canReassign && <ActionButton key="ra" icon={UserRoundCog} label="Reasignar técnico" hint="Requiere motivo" onClick={() => setDialog('asignar')} />,
     canSuspend && <ActionButton key="s" icon={PauseCircle} label="Suspender atención" hint="Causa y condiciones para reanudar" onClick={() => setDialog('suspender')} />,
     coord && code === 'E18' && <ActionButton key="re" icon={PlayCircle} tone="primary" label="Reanudar atención" hint="Vuelve a programada o en atención" onClick={() => setDialog('reanudar')} />,
   ].filter(Boolean);

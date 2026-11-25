@@ -214,7 +214,7 @@ function DiscardDialog({ open, onClose, ctx }: { open: boolean; onClose: () => v
       size="lg"
       icon={<SearchX className="h-5 w-5" />}
       title="El daño no se confirmó en la inspección"
-      description="Documenta el estado funcional encontrado; coordinación validará el cierre (HU-7.2)."
+      description="Documenta el estado funcional encontrado; coordinación validará el cierre."
       footer={
         <>
           <button type="button" className="btn-secondary" onClick={onClose} disabled={submit.busy}>
@@ -261,7 +261,7 @@ function InterventionDialog({ open, onClose, ctx }: { open: boolean; onClose: ()
     const total = Number(minutes || suggested || 0);
     if (activities.trim().length < 10) return submit.setError('Describe las actividades realizadas (mínimo 10 caracteres).');
     if (!total || total < 1) return submit.setError('Indica el tiempo invertido en minutos.');
-    if (files.length === 0) return submit.setError('Adjunta al menos una foto del trabajo terminado (RN-033).');
+    if (files.length === 0) return submit.setError('Adjunta al menos una foto del trabajo terminado.');
     if (materials.some((m) => !m.nombre.trim() || !(m.cantidad > 0) || !m.unidad.trim())) return submit.setError('Completa nombre, cantidad y unidad de cada material.');
     const ok = await submit.run(() =>
       opsService.registrarIntervencion(inc.id, {

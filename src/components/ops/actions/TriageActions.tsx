@@ -282,7 +282,7 @@ function PriorityDialog({ open, onClose, ctx }: { open: boolean; onClose: () => 
       size="lg"
       icon={<Gauge className="h-5 w-5" />}
       title="Recalcular prioridad"
-      description="El cambio queda en el historial con su justificación (RN-020)."
+      description="El cambio queda en el historial con su justificación."
       footer={
         <>
           <button type="button" className="btn-secondary" onClick={onClose} disabled={submit.busy}>

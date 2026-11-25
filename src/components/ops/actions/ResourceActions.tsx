@@ -57,7 +57,7 @@ export default function ResourceActions(ctx: ActionContext) {
           onClose={() => setDialog(null)}
           icon={<MessageSquarePlus className="h-5 w-5" />}
           title="Nota de seguimiento"
-          description="Queda en la bitácora de la solicitud de recursos; no cambia el estado (RN-030)."
+          description="Queda en la bitácora de la solicitud de recursos; no cambia el estado."
           label="Comentario"
           placeholder="Ej.: el proveedor confirmó la entrega para el jueves"
           min={5}

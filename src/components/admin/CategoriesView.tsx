@@ -87,8 +87,8 @@ export default function CategoriesView() {
               </div>
 
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                <Switch label="Foto obligatoria al radicar" hint="RN-005" checked={c.exige_evidencia_fotografica} disabled={readOnly} onChange={(v) => patch(c, { exige_evidencia_fotografica: v }, 'Regla de foto actualizada.')} />
-                <Switch label="Confirmación del reportante" hint="Termina en E14 en vez de E15" checked={c.requiere_confirmacion_cierre} disabled={readOnly} onChange={(v) => patch(c, { requiere_confirmacion_cierre: v }, 'Regla de cierre actualizada.')} />
+                <Switch label="Foto obligatoria al radicar" hint="No se puede radicar sin al menos una foto" checked={c.exige_evidencia_fotografica} disabled={readOnly} onChange={(v) => patch(c, { exige_evidencia_fotografica: v }, 'Regla de foto actualizada.')} />
+                <Switch label="Confirmación del reportante" hint="El reportante confirma que quedó resuelto antes de cerrar" checked={c.requiere_confirmacion_cierre} disabled={readOnly} onChange={(v) => patch(c, { requiere_confirmacion_cierre: v }, 'Regla de cierre actualizada.')} />
               </div>
               <div className="mt-3 flex items-center gap-2 text-xs">
                 <span className="font-semibold text-slate-500">Riesgo base</span>
@@ -229,8 +229,8 @@ function CategoryForm({ cat, parent, especialidades, onClose, onDone }: { cat?: 
           </select>
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
-          <Switch label="Foto obligatoria al radicar" hint="RN-005" checked={f.exige} onChange={(v) => setF({ ...f, exige: v })} />
-          <Switch label="Confirmación del reportante" hint="Cierre en E14" checked={f.confirma} onChange={(v) => setF({ ...f, confirma: v })} />
+          <Switch label="Foto obligatoria al radicar" hint="No se puede radicar sin al menos una foto" checked={f.exige} onChange={(v) => setF({ ...f, exige: v })} />
+          <Switch label="Confirmación del reportante" hint="El reportante confirma que quedó resuelto antes de cerrar" checked={f.confirma} onChange={(v) => setF({ ...f, confirma: v })} />
           <Switch label="Activa" hint="Visible al radicar" checked={f.activo} onChange={(v) => setF({ ...f, activo: v })} />
         </div>
         <div className="flex items-center gap-2 text-xs">
