@@ -17,6 +17,15 @@ const noopSubscribe = () => () => {};
 const readSavedAtOpen = () => (savedAtOpen ??= mayHaveSession());
 
 /**
+ * Al enviar el formulario ya no se retoma la sesión guardada: el ingreso lo hace LoginForm, que muestra
+ * la animación de "Bienvenido" antes de entrar. Sin esto, tras cerrar sesión sin recargar la página, la
+ * pantalla de "Verificando sesión" tapaba el botón.
+ */
+export function stopResuming() {
+  savedAtOpen = false;
+}
+
+/**
  * Al abrir el login con una sesión guardada en este equipo ("Recordar en este equipo", o el navegador
  * sigue abierto), entra directo a la aplicación en lugar de pedir otra vez las credenciales.
  */
