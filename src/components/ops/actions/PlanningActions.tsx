@@ -20,6 +20,8 @@ export default function PlanningActions(ctx: ActionContext) {
   // Diagnóstico enviado por el técnico que espera la decisión de coordinación.
   const diagnosis = [...inc.diagnosticos].reverse().find((d) => d.estado === 'REGISTRADO');
   const discarded = diagnosis?.incidencia_confirmada === false;
+  // E10 tras autorización puede llegar sin franja: programar crea el plan; reprogramar solo si ya hay uno vigente.
+  const hasPlan = inc.planes_intervencion.some((p) => p.estado_plan === 'VIGENTE');
   const canSuspend = ['E06', 'E07', 'E09', 'E10', 'E11'].includes(code) && (coord || isAssignedTech);
   const canReassign = coord && inc.tecnico_asignado && ['E06', 'E07', 'E10', 'E11', 'E13', 'E18'].includes(code);
 
@@ -30,7 +32,12 @@ export default function PlanningActions(ctx: ActionContext) {
     ),
     coord && code === 'E07' && diagnosis && !discarded && <ActionButton key="d" icon={Undo2} label="Devolver diagnóstico" hint="Insuficiente: vuelve a inspección" onClick={() => setDialog('devolver')} />,
     coord && code === 'E07' && discarded && <ActionButton key="n" icon={CircleSlash} tone="dark" label="Validar descarte y cerrar" hint="Daño no confirmado en inspección" onClick={() => setDialog('no-confirmada')} />,
-    coord && code === 'E10' && <ActionButton key="r" icon={CalendarClock} label="Reprogramar intervención" hint="Guarda la fecha anterior y el motivo" onClick={() => setDialog('reprogramar')} />,
+    coord && code === 'E10' && !hasPlan && (
+      <ActionButton key="p10" icon={CalendarCheck2} tone="primary" label="Programar intervención" hint="Define fecha y franja tras la autorización" onClick={() => setDialog('programar')} />
+    ),
+    coord && code === 'E10' && hasPlan && (
+      <ActionButton key="r" icon={CalendarClock} label="Reprogramar intervención" hint="Guarda la fecha anterior y el motivo" onClick={() => setDialog('reprogramar')} />
+    ),
     canReassign && <ActionButton key="ra" icon={UserRoundCog} label="Reasignar técnico" hint="Requiere motivo (RN-025)" onClick={() => setDialog('asignar')} />,
     canSuspend && <ActionButton key="s" icon={PauseCircle} label="Suspender atención" hint="Causa y condiciones para reanudar" onClick={() => setDialog('suspender')} />,
     coord && code === 'E18' && <ActionButton key="re" icon={PlayCircle} tone="primary" label="Reanudar atención" hint="Vuelve a programada o en atención" onClick={() => setDialog('reanudar')} />,
@@ -148,9 +155,11 @@ function ScheduleDialog({ open, reschedule, onClose, ctx }: { open: boolean; res
     const ok = await submit.run(() => (reschedule ? opsService.reprogramar(inc.id, { ...body, motivo: reason.trim() }) : opsService.programar(inc.id, body)));
     if (ok) {
       onClose();
-      onDone(reschedule ? 'Intervención reprogramada.' : 'Diagnóstico aprobado e intervención programada.');
+      onDone(reschedule ? 'Intervención reprogramada.' : 'Intervención programada.');
     }
   };
+
+  const fromDiagnosis = !reschedule && ctx.inc.estado.codigo === 'E07';
 
   return (
     <Modal
@@ -159,7 +168,7 @@ function ScheduleDialog({ open, reschedule, onClose, ctx }: { open: boolean; res
       busy={submit.busy}
       size="lg"
       icon={<CalendarClock className="h-5 w-5" />}
-      title={reschedule ? 'Reprogramar intervención' : 'Aprobar diagnóstico y programar'}
+      title={reschedule ? 'Reprogramar intervención' : fromDiagnosis ? 'Aprobar diagnóstico y programar' : 'Programar intervención'}
       description="Elige fecha y franja; el técnico y el reportante reciben la notificación."
       footer={
         <>
