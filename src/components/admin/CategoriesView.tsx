@@ -230,7 +230,7 @@ function CategoryForm({ cat, parent, especialidades, onClose, onDone }: { cat?: 
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
           <Switch label="Foto obligatoria al radicar" hint="No se puede radicar sin al menos una foto" checked={f.exige} onChange={(v) => setF({ ...f, exige: v })} />
-          <Switch label="Confirmación del reportante" hint="Cierre en E14" checked={f.confirma} onChange={(v) => setF({ ...f, confirma: v })} />
+          <Switch label="Confirmación del reportante" hint="El reportante confirma que quedó resuelto antes de cerrar" checked={f.confirma} onChange={(v) => setF({ ...f, confirma: v })} />
           <Switch label="Activa" hint="Visible al radicar" checked={f.activo} onChange={(v) => setF({ ...f, activo: v })} />
         </div>
         <div className="flex items-center gap-2 text-xs">

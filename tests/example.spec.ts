@@ -47,7 +47,7 @@ test.describe('acceso', () => {
     await page.goto('/recuperar-password');
 
     await page.locator('#rec-email').fill('correo-sin-arroba');
-    await page.getByRole('button', { name: 'Enviar código' }).click();
+    await page.getByRole('button', { name: 'Enviar enlace' }).click();
 
     await expect(page.getByText('Revisa el formato del correo.')).toBeVisible();
   });
