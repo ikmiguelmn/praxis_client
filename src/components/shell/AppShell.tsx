@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { WifiOff } from 'lucide-react';
 import AuthGuard from '@/lib/session/AuthGuard';
-import { useSession } from '@/lib/session/SessionProvider';
 import { useOnline } from '@/lib/useOnline';
 import GlobalSearch from './GlobalSearch';
 import ModuleBar from './ModuleBar';
@@ -19,12 +18,11 @@ import ConfirmHost from '@/components/ui/ConfirmDialog';
 import PageLoader from '@/components/ui/PageLoader';
 
 function TopBar() {
-  const { profile } = useSession();
   return (
     // z-[60]: por encima del velo y de la segunda barra, para que no se difumine y su menú de usuario no quede debajo.
     <div className="relative z-[60] border-b border-praxis-line bg-white">
       <div className="mx-auto flex max-w-[1440px] items-center gap-2 px-3 py-3 sm:gap-5 sm:px-6 lg:px-8">
-        <Link href={profile?.ruta_inicio ?? '/panel'} className="flex shrink-0 items-center gap-3" aria-label="PRAXIS, ir al inicio">
+        <Link href="/panel" className="flex shrink-0 items-center gap-3" aria-label="PRAXIS, ir al inicio">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/Logo2.png" alt="" className="h-9 w-9 object-contain" />
           <span className="hidden leading-tight md:block">

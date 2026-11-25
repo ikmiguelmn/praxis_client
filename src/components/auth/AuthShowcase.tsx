@@ -27,7 +27,7 @@ export default function AuthShowcase({
       <div className="relative z-10 space-y-3 pt-2">
         <div className="inline-flex items-center gap-5.5 bg-[#1E293B]/40 text-slate-300 text-[10px] font-semibold px-3 py-2 rounded backdrop-blur-md">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          PRAXIS // CAMPUS CRMS <span className="text-emerald-400 font-bold ml-0.5">v4.8.2</span>
+          PRAXIS
         </div>
 
         <div className="space-y-4 max-w-lg">

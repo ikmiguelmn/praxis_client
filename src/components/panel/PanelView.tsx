@@ -7,7 +7,6 @@ import { useSession } from '@/lib/session/SessionProvider';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { panelService, type PanelResumen } from '@/services/panelService';
 import { QueryBoundary, EmptyState } from '@/components/ui/States';
-import { StatusBadge } from '@/components/ui/Badges';
 import { TONE_CLASSES, stateTone } from '@/lib/tones';
 import { formatRelative } from '@/lib/format';
 
@@ -220,6 +219,17 @@ function StateDistribution({ resumen }: { resumen: PanelResumen }) {
   );
 }
 
+/** Estado sin fondo: solo el punto y el texto en el color del estado. */
+function StatusText({ item, className = '' }: { item: PanelResumen['recientes'][number]; className?: string }) {
+  const tone = TONE_CLASSES[stateTone(item.estado.codigo, item.estado.color)];
+  return (
+    <span className={`items-center gap-1.5 whitespace-nowrap text-xs font-semibold ${tone.text} ${className}`}>
+      <span className={`h-2 w-2 shrink-0 rounded-full ${tone.dot}`} aria-hidden="true" />
+      {item.estado.nombre}
+    </span>
+  );
+}
+
 function RecentRow({ item }: { item: PanelResumen['recientes'][number] }) {
   const needsInfo = item.estado.codigo === 'E02';
   const needsConfirm = item.estado.codigo === 'E14';
@@ -227,9 +237,13 @@ function RecentRow({ item }: { item: PanelResumen['recientes'][number] }) {
 
   return (
     <li className={`my-1.5 flex flex-col gap-3 rounded-2xl px-4 py-4 sm:flex-row sm:items-center ${actionable ? 'border border-amber-200 bg-amber-50/60' : 'hover:bg-slate-50'}`}>
-      <div className="w-40 shrink-0">
-        <p className="font-mono text-sm font-bold text-slate-900">#{item.codigo_ticket}</p>
-        <p className="text-xs text-slate-400">{formatRelative(item.fecha_actualizacion)}</p>
+      {/* En celular el estado va arriba a la derecha, junto al radicado. */}
+      <div className="flex items-start justify-between gap-3 sm:block sm:w-40 sm:shrink-0">
+        <div>
+          <p className="font-mono text-sm font-bold text-slate-900">#{item.codigo_ticket}</p>
+          <p className="text-xs text-slate-400">{formatRelative(item.fecha_actualizacion)}</p>
+        </div>
+        <StatusText item={item} className="mt-0.5 inline-flex sm:hidden" />
       </div>
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold text-slate-900">{item.resumen}</p>
@@ -241,7 +255,7 @@ function RecentRow({ item }: { item: PanelResumen['recientes'][number] }) {
               : item.categoria?.nombre ?? 'Sin categoría'}
         </p>
       </div>
-      <StatusBadge code={item.estado.codigo} name={item.estado.nombre} color={item.estado.color} size="md" />
+      <StatusText item={item} className="hidden sm:inline-flex" />
       <Link
         href={`/mis-solicitudes/${item.id}`}
         className={`${actionable ? 'btn-warning' : 'btn-secondary'} shrink-0 sm:w-52`}

@@ -10,6 +10,8 @@ export interface AdminUser {
   telefono: string | null;
   activo: boolean;
   bloqueado_hasta: string | null;
+  /** Creado con invitación y aún sin activar su cuenta (HU-1.7). */
+  pendiente_activacion?: boolean;
   ultimo_acceso_en: string | null;
   roles: { codigo: RoleCode; nombre: string }[];
   especialidades: { id?: number; codigo: string; nombre: string }[];
@@ -80,12 +82,17 @@ export interface CategoriaPayload {
 export const adminService = {
   users: async (params: { q?: string; rol?: string; activo?: string; page?: number }): Promise<Paginated<AdminUser>> =>
     (await api.get<Paginated<AdminUser>>('/admin/usuarios', { params: { ...params, q: params.q || undefined, rol: params.rol || undefined, activo: params.activo || undefined, per_page: 15 } })).data,
-  createUser: async (body: { nombre: string; email: string; telefono?: string; password?: string; roles: RoleCode[]; especialidades: string[]; motivo?: string }) =>
+  /** Sin contraseña: el backend envía el correo de bienvenida para activar la cuenta (HU-1.7). */
+  createUser: async (body: { nombre: string; email: string; telefono?: string; roles: RoleCode[]; especialidades: string[]; enviar_bienvenida: true; motivo?: string }) =>
     (await api.post<{ data: AdminUser }>('/admin/usuarios', body)).data.data,
-  updateUser: async (id: number, body: { nombre?: string; email?: string; telefono?: string | null; password?: string; especialidades?: string[]; motivo?: string }) =>
+  updateUser: async (id: number, body: { nombre?: string; email?: string; telefono?: string | null; especialidades?: string[]; motivo?: string }) =>
     (await api.put<{ data: AdminUser }>(`/admin/usuarios/${id}`, body)).data.data,
   setRoles: async (id: number, roles: RoleCode[], motivo?: string) => (await api.put<{ data: AdminUser }>(`/admin/usuarios/${id}/roles`, { roles, motivo })).data.data,
   setUserState: async (id: number, activo: boolean, motivo?: string) => (await api.patch<{ data: AdminUser }>(`/admin/usuarios/${id}/estado`, { activo, motivo })).data.data,
+  /** Envía al correo del usuario un enlace de un solo uso y cierra sus sesiones (HU-1.5). */
+  resetPassword: async (id: number) => (await api.post<{ mensaje?: string }>(`/admin/usuarios/${id}/reset-password`)).data,
+  /** Reenvía el correo de bienvenida cuando el enlace de activación venció (HU-1.7). */
+  resendActivation: async (id: number) => (await api.post<{ mensaje?: string }>(`/admin/usuarios/${id}/reenviar-activacion`)).data,
   roles: async (): Promise<RolCatalogo[]> => (await api.get<{ data: RolCatalogo[] }>('/admin/roles')).data.data,
   especialidades: async (): Promise<EspecialidadCatalogo[]> => (await api.get<{ data: EspecialidadCatalogo[] }>('/admin/especialidades')).data.data,
 

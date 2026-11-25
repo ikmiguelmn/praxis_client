@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from 'react';
+import axios from 'axios';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AtSign } from 'lucide-react';
@@ -17,6 +18,16 @@ const noopSubscribe = () => () => {};
 function returnUrlFromLocation(): string | undefined {
   const value = new URLSearchParams(window.location.search).get('returnUrl');
   return value && value.startsWith('/') && !value.startsWith('//') ? value : undefined;
+}
+
+/** Cuenta bloqueada por intentos fallidos (423): se indica cuánto falta para volver a intentar (HU-11.4). */
+function lockoutMessage(err: unknown): string | null {
+  if (!axios.isAxiosError(err) || err.response?.status !== 423) return null;
+  const until = (err.response.data as { bloqueado_hasta?: string } | undefined)?.bloqueado_hasta;
+  const ms = until ? new Date(until).getTime() - Date.now() : NaN;
+  if (!(ms > 0)) return null;
+  const minutes = Math.ceil(ms / 60_000);
+  return `Cuenta bloqueada temporalmente por seguridad. Podrás intentar de nuevo en ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}.`;
 }
 
 export default function LoginForm() {
@@ -57,12 +68,14 @@ export default function LoginForm() {
       setTimeout(() => {
         // En celular el formulario queda abajo; sin esto la aplicación abría a mitad de página.
         window.scrollTo({ top: 0 });
-        router.replace(back ?? session.redirect_to ?? session.usuario.ruta_inicio ?? '/panel');
+        // Tras cerrar sesión y volver a ingresar, todos los roles entran a Inicio; solo una sesión vencida
+        // conserva el deep-link (returnUrl) para volver a donde estaba.
+        router.replace(back ?? '/panel');
       }, 450);
     } catch (err) {
       const fields = apiFieldErrors(err);
       setFieldErrors({ email: fields.email, password: fields.password });
-      setError(fields.email || fields.password ? '' : apiErrorMessage(err, 'No se pudo iniciar sesión'));
+      setError(fields.email || fields.password ? '' : lockoutMessage(err) ?? apiErrorMessage(err, 'No se pudo iniciar sesión'));
       setState('idle');
     }
   };

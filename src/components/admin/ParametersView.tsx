@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { History, Minus, Plus, RotateCcw, Save, SlidersHorizontal } from 'lucide-react';
+import { History, KeyRound, Minus, Plus, RotateCcw, Save, SlidersHorizontal, Workflow } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import { QueryBoundary } from '@/components/ui/States';
 import StatusTimeline from '@/components/ui/StatusTimeline';
@@ -13,7 +13,10 @@ import { useApiQuery } from '@/lib/useApiQuery';
 import { apiErrorMessage } from '@/lib/apiError';
 import { TONE_CLASSES, priorityTone } from '@/lib/tones';
 import { useModuleAccess } from '@/lib/session/SessionProvider';
+import { forgetPasswordPolicy } from '@/lib/usePasswordPolicy';
+import { buildRules } from '@/lib/passwordPolicy';
 import ReadOnlyNotice from './ReadOnlyNotice';
+import SecurityPolicyPanel, { SECURITY_SPEC, withinSpec } from './SecurityPolicyPanel';
 
 const IMPACTS = ['ALTO', 'MEDIO', 'BAJO'];
 const URGENCIES = ['ALTA', 'MEDIA', 'BAJA'];
@@ -73,7 +76,11 @@ function Editor({ initial, readOnly, onSaved }: { initial: Parametros; readOnly:
   const slaDirty = sla.some((s, i) => s.horas_primera_respuesta !== initial.sla[i].horas_primera_respuesta || s.horas_resolucion !== initial.sla[i].horas_resolucion);
   const changedParams = initial.parametros.filter((p) => params[p.clave] !== p.valor);
   const changes = (matrixDirty ? 1 : 0) + (slaDirty ? 1 : 0) + changedParams.length;
-  const invalid = sla.some((s) => s.horas_primera_respuesta < 1 || s.horas_resolucion < 1 || s.horas_resolucion < s.horas_primera_respuesta) || Object.values(params).some((v) => !(v >= 1));
+  const invalid =
+    sla.some((s) => s.horas_primera_respuesta < 1 || s.horas_resolucion < 1 || s.horas_resolucion < s.horas_primera_respuesta) ||
+    Object.entries(params).some(([key, v]) => (SECURITY_SPEC[key] ? !withinSpec(key, v) : !(v >= 1)));
+  const [tab, setTab] = useState<'flujo' | 'seguridad'>('flujo');
+  const securityChanges = changedParams.filter((p) => p.grupo === 'SEGURIDAD').length;
 
   const cycle = (i: string, u: string) => {
     if (readOnly) return;
@@ -97,6 +104,7 @@ function Editor({ initial, readOnly, onSaved }: { initial: Parametros; readOnly:
         sla: slaDirty ? sla.map(({ codigo, horas_primera_respuesta, horas_resolucion }) => ({ codigo, horas_primera_respuesta, horas_resolucion })) : undefined,
         parametros: changedParams.length ? Object.fromEntries(changedParams.map((p) => [p.clave, params[p.clave]])) : undefined,
       });
+      if (securityChanges) forgetPasswordPolicy();
       toast('La matriz de prioridad, los plazos y los parámetros ya están vigentes.', 'success', 'Configuración aplicada');
       onSaved();
     } catch (err) {
@@ -106,10 +114,50 @@ function Editor({ initial, readOnly, onSaved }: { initial: Parametros; readOnly:
     }
   };
 
-  const groups = initial.parametros.reduce<Record<string, Parametros['parametros']>>((acc, p) => ({ ...acc, [p.grupo]: [...(acc[p.grupo] ?? []), p] }), {});
+  const groups = initial.parametros.filter((p) => p.grupo !== 'SEGURIDAD').reduce<Record<string, Parametros['parametros']>>((acc, p) => ({ ...acc, [p.grupo]: [...(acc[p.grupo] ?? []), p] }), {});
+
+  const security = initial.parametros.filter((p) => p.grupo === 'SEGURIDAD');
+  const TABS = [
+    { id: 'flujo', label: 'Flujo y plazos', icon: Workflow, count: (matrixDirty ? 1 : 0) + (slaDirty ? 1 : 0) + changedParams.length - securityChanges },
+    { id: 'seguridad', label: 'Seguridad y contraseñas', icon: KeyRound, count: securityChanges },
+  ] as const;
 
   return (
     <div className="space-y-6">
+      <div className="inline-flex flex-wrap rounded-xl bg-praxis-field p-1" role="tablist" aria-label="Grupo de parámetros">
+        {TABS.map(({ id, label, icon: Icon, count }) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            onClick={() => setTab(id)}
+            className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-semibold transition ${tab === id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+          >
+            <Icon className="h-4 w-4" aria-hidden="true" />
+            {label}
+            {count > 0 && <span className="rounded-full bg-praxis-navy px-1.5 text-[10px] font-bold text-white">{count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'seguridad' && (
+        <SecurityPolicyPanel
+          params={security}
+          values={params}
+          readOnly={readOnly}
+          rules={buildRules({
+            longitud_minima: params.PASSWORD_LONGITUD_MINIMA ?? 8,
+            exige_mayuscula: (params.PASSWORD_EXIGE_MAYUSCULA ?? 1) === 1,
+            exige_minuscula: (params.PASSWORD_EXIGE_MINUSCULA ?? 1) === 1,
+            exige_numero: (params.PASSWORD_EXIGE_NUMERO ?? 1) === 1,
+            exige_simbolo: (params.PASSWORD_EXIGE_SIMBOLO ?? 1) === 1,
+          })}
+          onChange={(key, v) => setParams((x) => ({ ...x, [key]: v }))}
+        />
+      )}
+
+      <div className={tab === 'flujo' ? 'space-y-6' : 'hidden'}>
       <div className="grid gap-6 xl:grid-cols-2">
         <section className="card p-6">
           <h2 className="font-bold text-slate-900">Matriz de prioridad</h2>
@@ -191,6 +239,7 @@ function Editor({ initial, readOnly, onSaved }: { initial: Parametros; readOnly:
           ))}
         </div>
       </section>
+      </div>
 
       <AnimatePresence>
         {!readOnly && changes > 0 && (

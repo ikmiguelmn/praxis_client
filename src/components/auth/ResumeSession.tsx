@@ -26,7 +26,7 @@ export default function ResumeSession({ children }: { children: ReactNode }) {
   const { status, profile, ensureSession } = useSession();
   const saved = useSyncExternalStore(noopSubscribe, readSavedAtOpen, () => false);
   // Tras una sesión vencida o un cambio de contraseña se muestra el formulario.
-  const skip = params.get('sesion') === 'expirada' || params.has('restablecida');
+  const skip = params.get('sesion') === 'expirada' || params.has('restablecida') || params.has('activada');
   const checking = saved && !skip && (status === 'idle' || status === 'loading' || status === 'authenticated');
 
   useEffect(() => {
@@ -36,7 +36,8 @@ export default function ResumeSession({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!checking || status !== 'authenticated' || !profile) return;
     window.scrollTo({ top: 0 });
-    router.replace(safeReturnUrl(params.get('returnUrl')) ?? profile.ruta_inicio ?? '/panel');
+    // Sin deep-link, todos los roles entran a Inicio.
+    router.replace(safeReturnUrl(params.get('returnUrl')) ?? '/panel');
   }, [checking, status, profile, params, router]);
 
   if (checking) return <FullscreenLoader label="Verificando sesión" />;
