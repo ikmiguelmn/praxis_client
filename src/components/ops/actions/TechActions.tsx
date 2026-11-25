@@ -245,6 +245,28 @@ interface Material {
   unidad: string;
 }
 
+/** Materiales ya pedidos/aprobados en la solicitud de recursos, listos para precargar en la bitácora. */
+function plannedMaterials(inc: ActionContext['inc']): Material[] {
+  const usable = new Set(['DISPONIBLE', 'PENDIENTE_RECURSOS', 'PENDIENTE_AUTORIZACION']);
+  const seen = new Set<string>();
+  const rows: Material[] = [];
+
+  for (const solicitud of inc.solicitudes_recursos) {
+    if (!usable.has(solicitud.estado_solicitud) && solicitud.resultado_dictamen !== 'APROBADA') continue;
+    for (const detalle of solicitud.detalles ?? []) {
+      const nombre = detalle.recurso_nombre?.trim();
+      if (!nombre) continue;
+      const unidad = (detalle.unidad || 'UND').trim().toUpperCase() || 'UND';
+      const key = `${nombre.toLowerCase()}|${unidad}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({ nombre, cantidad: Math.max(1, Number(detalle.cantidad) || 1), unidad });
+    }
+  }
+
+  return rows;
+}
+
 function InterventionDialog({ open, onClose, ctx }: { open: boolean; onClose: () => void; ctx: ActionContext }) {
   const { inc, onDone } = ctx;
   const elapsed = useElapsed(inc.id);
@@ -254,8 +276,20 @@ function InterventionDialog({ open, onClose, ctx }: { open: boolean; onClose: ()
   const [materials, setMaterials] = useState<Material[]>([]);
   const [files, setFiles] = useState<Evidencia[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [fromPlan, setFromPlan] = useState(false);
   const submit = useSubmit();
   const suggested = elapsed ? Math.max(1, Math.round(elapsed / 60000)) : null;
+
+  useEffect(() => {
+    if (!open) return;
+    const planned = plannedMaterials(inc);
+    setMaterials(planned);
+    setFromPlan(planned.length > 0);
+    setActivities('');
+    setMinutes('');
+    setNotes('');
+    setFiles([]);
+  }, [open, inc]);
 
   const save = async () => {
     const total = Number(minutes || suggested || 0);
@@ -311,30 +345,41 @@ function InterventionDialog({ open, onClose, ctx }: { open: boolean; onClose: ()
           {suggested && <span className="mt-1 block text-xs font-normal text-emerald-700">Según el cronómetro: {suggested} min (se usa si lo dejas vacío).</span>}
         </label>
         <div>
-          <div className="flex items-center justify-between">
-            <p className="field-label">Materiales usados</p>
-            <button type="button" onClick={() => setMaterials((m) => [...m, { nombre: '', cantidad: 1, unidad: 'UND' }])} className="btn-ghost text-xs">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="field-label">Materiales usados</p>
+              {fromPlan && materials.length > 0 && (
+                <p className="mt-0.5 text-[11px] font-normal text-emerald-700">Precargados desde la solicitud de recursos; ajústalos si hace falta.</p>
+              )}
+            </div>
+            <button type="button" onClick={() => setMaterials((m) => [...m, { nombre: '', cantidad: 1, unidad: 'UND' }])} className="btn-ghost shrink-0 text-xs">
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               Agregar material
             </button>
           </div>
           {materials.length === 0 ? (
-            <p className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-500">Sin materiales registrados.</p>
+            <p className="rounded-xl bg-slate-50 px-3 py-2.5 text-xs text-slate-500">Sin materiales registrados. Usa “Agregar material” si consumiste insumos.</p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="mt-2 space-y-2">
               {materials.map((m, i) => (
-                <li key={i} className="grid grid-cols-[1fr_auto_80px_auto] items-center gap-2">
-                  <input aria-label="Material" className="field h-10" value={m.nombre} maxLength={150} placeholder="Balasto electrónico" onChange={(e) => setMaterials((list) => list.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} />
-                  <span className="flex items-center rounded-xl bg-praxis-field">
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto_5.5rem_auto] items-center gap-2">
+                  <input aria-label="Material" className="field h-10 text-slate-900" value={m.nombre} maxLength={150} placeholder="Balasto electrónico" onChange={(e) => setMaterials((list) => list.map((x, j) => (j === i ? { ...x, nombre: e.target.value } : x)))} />
+                  <span className="flex items-center rounded-xl border border-[#d0d7e2] bg-[#eef2f6] text-[#0b1b3a]">
                     <button type="button" aria-label="Menos" className="p-2.5" onClick={() => setMaterials((list) => list.map((x, j) => (j === i ? { ...x, cantidad: Math.max(1, x.cantidad - 1) } : x)))}>
                       <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
-                    <span className="w-8 text-center text-sm font-semibold tabular-nums">{m.cantidad}</span>
+                    <span className="w-8 text-center text-sm font-bold tabular-nums">{m.cantidad}</span>
                     <button type="button" aria-label="Más" className="p-2.5" onClick={() => setMaterials((list) => list.map((x, j) => (j === i ? { ...x, cantidad: x.cantidad + 1 } : x)))}>
                       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </span>
-                  <input aria-label="Unidad" className="field h-10" value={m.unidad} maxLength={20} onChange={(e) => setMaterials((list) => list.map((x, j) => (j === i ? { ...x, unidad: e.target.value } : x)))} />
+                  <input
+                    aria-label="Unidad"
+                    className="h-10 w-full rounded-xl border border-[#d0d7e2] bg-[#eef2f6] px-2 text-center text-xs font-bold uppercase tracking-wide text-[#0b1b3a] outline-none focus:border-praxis-sky focus:ring-4 focus:ring-praxis-sky/15"
+                    value={m.unidad}
+                    maxLength={20}
+                    onChange={(e) => setMaterials((list) => list.map((x, j) => (j === i ? { ...x, unidad: e.target.value.toUpperCase() } : x)))}
+                  />
                   <button type="button" aria-label="Quitar material" className="rounded-lg p-2 text-red-500 hover:bg-red-50" onClick={() => setMaterials((list) => list.filter((_, j) => j !== i))}>
                     <Trash2 className="h-4 w-4" aria-hidden="true" />
                   </button>
