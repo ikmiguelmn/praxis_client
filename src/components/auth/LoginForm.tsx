@@ -11,6 +11,7 @@ import { apiErrorMessage, apiFieldErrors } from '@/lib/apiError';
 import { AuthError, AuthField, AuthItem, AuthSubmit } from './AuthMotion';
 import PasswordField from './recovery/PasswordField';
 import { deviceIsRemembered, rememberDevice, rememberedEmail } from '@/lib/session/rememberDevice';
+import { stopResuming } from './ResumeSession';
 
 const noopSubscribe = () => () => {};
 
@@ -57,6 +58,7 @@ export default function LoginForm() {
     setError('');
     if (next.email || next.password) return;
 
+    stopResuming();
     setState('loading');
     try {
       const back = returnUrlFromLocation();
