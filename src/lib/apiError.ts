@@ -29,7 +29,7 @@ export function apiFieldErrors(err: unknown): Record<string, string> {
   return Object.fromEntries(
     Object.entries(errors)
       .filter(([, messages]) => Array.isArray(messages) && messages.length > 0)
-      .map(([field, messages]) => [field, messages[0]]),
+      .map(([field, messages]) => [field, withoutRuleCodes(messages[0])]),
   );
 }
 
@@ -42,5 +42,10 @@ export function apiErrorMessage(err: unknown, fallback: string): string {
   const problem = problemFrom(err);
   const firstFieldError = Object.values(apiFieldErrors(err))[0];
 
-  return firstFieldError ?? problem?.detail ?? problem?.title ?? fallback;
+  return withoutRuleCodes(firstFieldError ?? problem?.detail ?? problem?.title ?? fallback);
+}
+
+/** Quita referencias internas como "(RN-005)" o "(HU-1.4)" que el backend agrega a algunos mensajes. */
+function withoutRuleCodes(message: string): string {
+  return message.replace(/\s*\((?:RN|HU)-[^)]*\)/g, '').trim();
 }
