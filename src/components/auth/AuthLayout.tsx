@@ -2,7 +2,6 @@
 
 import type { ReactNode } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { ShieldCheck } from 'lucide-react';
 import AuthShowcase from './AuthShowcase';
 import BlueprintBackdrop from './BlueprintBackdrop';
 import { AuthItem, staggerVariants } from './AuthMotion';
@@ -86,11 +85,8 @@ export default function AuthLayout({ title, subtitle, children, top, showcaseTit
           </motion.div>
         </div>
 
-        <footer className="relative z-10 flex flex-col items-center justify-between gap-1 px-6 pb-5 text-[11px] text-slate-500 sm:flex-row">
-          <span className="flex items-center gap-1.5 font-semibold text-slate-600">
-            <ShieldCheck className="h-3.5 w-3.5 text-[#35BE8B]" aria-hidden="true" />
-            Conexión cifrada TLS 1.3, TI Institucional
-          </span>
+        {/* HU-1.8: sin distintivo de "Conexión cifrada TLS"; el HTTPS lo garantiza la infraestructura. */}
+        <footer className="relative z-10 flex justify-center px-6 pb-5 text-[11px] text-slate-500">
           <span>Sede Campus Central, Mesa de Ayuda MEP</span>
         </footer>
       </section>

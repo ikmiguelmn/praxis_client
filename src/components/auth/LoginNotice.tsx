@@ -8,16 +8,20 @@ const NOTICES = {
     tone: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     text: 'Tu contraseña se actualizó. Inicia sesión con la nueva clave.',
   },
+  activada: {
+    tone: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    text: '¡Bienvenido a PRAXIS! Tu cuenta quedó activa. Inicia sesión con la contraseña que acabas de crear.',
+  },
   expirada: {
     tone: 'bg-amber-50 text-amber-800 border-amber-200',
     text: 'Tu sesión terminó. Inicia sesión de nuevo para continuar.',
   },
 } as const;
 
-/** Aviso de contexto al llegar al login (contraseña restablecida o sesión vencida). */
+/** Aviso de contexto al llegar al login (contraseña restablecida, cuenta activada o sesión vencida). */
 export default function LoginNotice() {
   const params = useSearchParams();
-  const key = params.has('restablecida') ? 'restablecida' : params.get('sesion') === 'expirada' ? 'expirada' : null;
+  const key = params.has('restablecida') ? 'restablecida' : params.has('activada') ? 'activada' : params.get('sesion') === 'expirada' ? 'expirada' : null;
   if (!key) return null;
 
   return (

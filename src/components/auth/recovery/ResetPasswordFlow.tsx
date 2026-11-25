@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { ChevronLeft, Link2Off, WifiOff } from 'lucide-react';
 import { passwordRecoveryService } from '@/services/passwordRecoveryService';
 import { apiErrorMessage, apiFieldErrors, apiStatus } from '@/lib/apiError';
-import { meetsPolicy } from '@/lib/passwordPolicy';
+import { POLICY_MESSAGE, meetsPolicy } from '@/lib/passwordPolicy';
+import { usePasswordPolicy } from '@/lib/usePasswordPolicy';
 import AuthLayout from '../AuthLayout';
 import { authButton } from '../authStyles';
 import { AuthError, AuthItem, AuthSubmit } from '../AuthMotion';
@@ -53,6 +54,7 @@ export default function ResetPasswordFlow({ token }: { token: string }) {
   const [fieldError, setFieldError] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const { rules } = usePasswordPolicy();
 
   const checkToken = useCallback(() => {
     passwordRecoveryService
@@ -65,7 +67,7 @@ export default function ResetPasswordFlow({ token }: { token: string }) {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!meetsPolicy(password)) return setFieldError('La contraseña todavía no cumple todos los requisitos.');
+    if (!meetsPolicy(password, rules)) return setFieldError(POLICY_MESSAGE);
     if (confirmation !== password) return setFieldError('Las contraseñas no coinciden.');
     setSaving(true);
     setFieldError('');
@@ -106,14 +108,14 @@ export default function ResetPasswordFlow({ token }: { token: string }) {
                 {INVALID_LINK_MESSAGE}.
               </p>
               <Link href="/recuperar-password" className={authButton}>
-                Solicitar un código nuevo →
+                Solicitar un enlace nuevo →
               </Link>
             </>
           )}
           {status === 'form' && (
             <form noValidate onSubmit={save} className="space-y-4">
               <PasswordField id="new-password" label="Nueva contraseña" value={password} autoFocus describedBy="password-requirements" onChange={(v) => { setPassword(v); setFieldError(''); }} />
-              <PasswordRequirements id="password-requirements" password={password} />
+              <PasswordRequirements id="password-requirements" password={password} rules={rules} />
               <PasswordField id="confirm-password" label="Confirmar contraseña" value={confirmation} onChange={(v) => { setConfirmation(v); setFieldError(''); }} />
               {confirmation && confirmation === password && <p className="text-xs font-semibold text-emerald-700">✓ Las contraseñas coinciden</p>}
               <AuthError message={fieldError || error} />

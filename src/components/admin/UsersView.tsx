@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, KeyRound, Lock, Pencil, Search, ShieldCheck, UserPlus, UserRoundCheck, UserRoundX, Users } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ChevronLeft, ChevronRight, Clock, KeyRound, Lock, MailCheck, Pencil, Search, Send, ShieldCheck, UserPlus, UserRoundCheck, UserRoundX, Users, Wrench } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
 import ReasonDialog from '@/components/ui/ReasonDialog';
@@ -13,10 +13,15 @@ import { FormError, useSubmit } from '@/components/ops/actions/ActionKit';
 import { adminService, type AdminUser } from '@/services/adminService';
 import { useApiQuery } from '@/lib/useApiQuery';
 import { useModuleAccess, useSession } from '@/lib/session/SessionProvider';
-import { PASSWORD_RULES, meetsPolicy, passedRules } from '@/lib/passwordPolicy';
+import { confirmAction } from '@/components/ui/ConfirmDialog';
+import { apiErrorMessage } from '@/lib/apiError';
 import { formatRelative, initials } from '@/lib/format';
 import type { RoleCode } from '@/types/auth';
 import ReadOnlyNotice from './ReadOnlyNotice';
+
+/** Rol que ejecuta intervenciones de campo: el único que lleva especialidades técnicas (HU-11.5). */
+const TECNICO: RoleCode = 'R04';
+const SPECIALTY_REQUIRED = 'Selecciona al menos una especialidad técnica para el rol Técnico de mantenimiento.';
 
 const ROLE_TONES: Record<string, 'azul' | 'violeta' | 'cian' | 'naranja' | 'amarillo' | 'verde' | 'rojo'> = {
   R01: 'azul', R02: 'violeta', R03: 'cian', R04: 'naranja', R05: 'amarillo', R06: 'verde', R07: 'rojo',
@@ -34,6 +39,7 @@ export default function UsersView() {
   const [editing, setEditing] = useState<AdminUser | 'new' | null>(null);
   const [rolesFor, setRolesFor] = useState<AdminUser | null>(null);
   const [stateFor, setStateFor] = useState<AdminUser | null>(null);
+  const [resetFor, setResetFor] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -48,6 +54,23 @@ export default function UsersView() {
   const done = (message: string) => {
     toast(message);
     void list.reload();
+  };
+
+  const resendInvitation = async (u: AdminUser) => {
+    const ok = await confirmAction({
+      tone: 'primary',
+      icon: 'question',
+      title: `¿Reenviar la invitación a ${u.nombre}?`,
+      description: `Enviaremos un nuevo correo de bienvenida a ${u.email}. El enlace anterior dejará de funcionar.`,
+      confirmLabel: 'Reenviar invitación',
+    });
+    if (!ok) return;
+    try {
+      await adminService.resendActivation(u.id);
+      toast(`Enviamos un nuevo enlace de activación a ${u.email}.`, 'success', 'Invitación reenviada');
+    } catch (err) {
+      toast(apiErrorMessage(err, 'No se pudo reenviar la invitación.'), 'error');
+    }
   };
 
   return (
@@ -131,7 +154,12 @@ export default function UsersView() {
                         <td className="px-3 py-3 text-xs text-slate-600">{u.especialidades.map((e) => e.nombre).join(', ') || '—'}</td>
                         <td className="px-3 py-3 text-xs text-slate-500">{u.ultimo_acceso_en ? formatRelative(u.ultimo_acceso_en) : 'Nunca'}</td>
                         <td className="px-3 py-3">
-                          {u.bloqueado_hasta && new Date(u.bloqueado_hasta) > new Date() ? (
+                          {u.pendiente_activacion ? (
+                            <ToneBadge tone="amarillo">
+                              <Clock className="h-3 w-3" aria-hidden="true" />
+                              Pendiente de activación
+                            </ToneBadge>
+                          ) : u.bloqueado_hasta && new Date(u.bloqueado_hasta) > new Date() ? (
                             <ToneBadge tone="naranja">
                               <Lock className="h-3 w-3" aria-hidden="true" />
                               Bloqueado
@@ -145,6 +173,11 @@ export default function UsersView() {
                             <span className="flex justify-end gap-1">
                               <IconBtn label="Editar datos" onClick={() => setEditing(u)} icon={<Pencil className="h-4 w-4" />} />
                               <IconBtn label="Cambiar roles" onClick={() => setRolesFor(u)} icon={<ShieldCheck className="h-4 w-4" />} />
+                              {u.pendiente_activacion ? (
+                                <IconBtn label="Reenviar invitación" onClick={() => void resendInvitation(u)} icon={<Send className="h-4 w-4" />} />
+                              ) : (
+                                u.activo && u.id !== profile?.id && <IconBtn label="Restablecer contraseña" onClick={() => setResetFor(u)} icon={<KeyRound className="h-4 w-4" />} />
+                              )}
                               {u.id !== profile?.id && (
                                 <IconBtn
                                   label={u.activo ? 'Inactivar' : 'Activar'}
@@ -180,6 +213,7 @@ export default function UsersView() {
       </section>
 
       {editing && <UserDialog user={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onDone={done} />}
+      {resetFor && <ResetPasswordDialog user={resetFor} onClose={() => setResetFor(null)} onDone={done} />}
       {rolesFor && <RolesDialog user={rolesFor} onClose={() => setRolesFor(null)} onDone={done} />}
       {stateFor && (
         <ReasonDialog
@@ -209,27 +243,81 @@ function IconBtn({ label, icon, onClick }: { label: string; icon: React.ReactNod
   );
 }
 
-function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose: () => void; onDone: (m: string) => void }) {
+/** Selector de especialidades; solo aparece cuando el usuario tendrá el rol Técnico de mantenimiento (HU-11.5). */
+function SpecialtyPicker({ show, selected, onChange, invalid }: { show: boolean; selected: string[]; onChange: (next: string[]) => void; invalid?: boolean }) {
   const especialidades = useApiQuery('admin:especialidades', adminService.especialidades, { blocking: false });
+  return (
+    <AnimatePresence initial={false}>
+      {show && (
+        <motion.div
+          key="especialidades"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          className="overflow-hidden"
+        >
+          <fieldset className={`rounded-2xl border p-4 ${invalid ? 'border-red-300 bg-red-50/40' : 'border-praxis-line'}`}>
+            <legend className="field-label flex items-center gap-1.5 px-1">
+              <Wrench className="h-3.5 w-3.5" aria-hidden="true" />
+              Especialidades técnicas <span className="text-red-600" aria-hidden="true">*</span>
+              <span className="sr-only">(obligatorio)</span>
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {especialidades.data?.filter((e) => e.activo).map((e) => (
+                <button
+                  key={e.codigo}
+                  type="button"
+                  aria-pressed={selected.includes(e.codigo)}
+                  onClick={() => onChange(selected.includes(e.codigo) ? selected.filter((x) => x !== e.codigo) : [...selected, e.codigo])}
+                  className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${selected.includes(e.codigo) ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'}`}
+                >
+                  {e.nombre}
+                </button>
+              ))}
+            </div>
+            <p className={`mt-2 text-[11px] ${invalid ? 'font-semibold text-red-600' : 'text-slate-400'}`}>
+              {invalid ? SPECIALTY_REQUIRED : 'Definen qué incidencias puede recibir el técnico. Elige al menos una.'}
+            </p>
+          </fieldset>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose: () => void; onDone: (m: string) => void }) {
   const roles = useApiQuery('admin:roles', adminService.roles, { blocking: false });
-  const [f, setF] = useState({ nombre: user?.nombre ?? '', email: user?.email ?? '', telefono: user?.telefono ?? '', password: '', motivo: '' });
+  const [f, setF] = useState({ nombre: user?.nombre ?? '', email: user?.email ?? '', telefono: user?.telefono ?? '', motivo: '' });
   const [esp, setEsp] = useState<string[]>(user?.especialidades.map((e) => e.codigo) ?? []);
   const [newRoles, setNewRoles] = useState<RoleCode[]>(['R01']);
+  const [tried, setTried] = useState(false);
   const submit = useSubmit();
-  const passed = passedRules(f.password);
+  // Al editar, los roles se cambian aparte; aquí manda el rol que ya tiene.
+  const isTechnician = user ? user.roles.some((r) => r.codigo === TECNICO) : newRoles.includes(TECNICO);
+  const missingSpecialty = isTechnician && esp.length === 0;
+
+  const toggleRole = (code: RoleCode) => {
+    const next = newRoles.includes(code) ? newRoles.filter((x) => x !== code) : [...newRoles, code];
+    setNewRoles(next);
+    // Sin el rol técnico no quedan especialidades residuales.
+    if (!next.includes(TECNICO)) setEsp([]);
+  };
 
   const save = async () => {
+    setTried(true);
     if (!f.nombre.trim() || !f.email.trim()) return submit.setError('Nombre y correo son obligatorios.');
-    if (f.password && !meetsPolicy(f.password)) return submit.setError('La contraseña no cumple la política institucional.');
     if (!user && newRoles.length === 0) return submit.setError('Asigna al menos un rol.');
+    if (missingSpecialty) return submit.setError(SPECIALTY_REQUIRED);
+    const especialidades = isTechnician ? esp : [];
     const ok = await submit.run(() =>
       user
-        ? adminService.updateUser(user.id, { nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || null, password: f.password || undefined, especialidades: esp, motivo: f.motivo.trim() || undefined })
-        : adminService.createUser({ nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || undefined, password: f.password || undefined, roles: newRoles, especialidades: esp, motivo: f.motivo.trim() || undefined }),
+        ? adminService.updateUser(user.id, { nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || null, especialidades, motivo: f.motivo.trim() || undefined })
+        : adminService.createUser({ nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || undefined, roles: newRoles, especialidades, enviar_bienvenida: true, motivo: f.motivo.trim() || undefined }),
     );
     if (ok) {
       onClose();
-      onDone(user ? 'Usuario actualizado.' : 'Usuario creado.');
+      onDone(user ? 'Usuario actualizado.' : `Usuario creado. Enviamos el correo de bienvenida a ${f.email.trim()}.`);
     }
   };
 
@@ -247,7 +335,7 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
             Cancelar
           </button>
           <button type="button" className="btn-primary" onClick={save} disabled={submit.busy}>
-            {submit.busy ? 'Guardando…' : user ? 'Guardar cambios' : 'Crear usuario'}
+            {submit.busy ? 'Guardando…' : user ? 'Guardar cambios' : 'Crear y enviar invitación'}
           </button>
         </>
       }
@@ -266,46 +354,29 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
             Teléfono <span className="font-normal text-slate-400">(opcional)</span>
             <input className="field mt-1.5 font-normal" maxLength={30} value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} />
           </label>
-          <label className="field-label">
-            <span className="flex items-center gap-1.5">
-              <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
-              {user ? 'Nueva contraseña' : 'Contraseña'} <span className="font-normal text-slate-400">(opcional)</span>
-            </span>
-            <input type="password" autoComplete="new-password" className="field mt-1.5 font-normal" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
-          </label>
         </div>
-        {f.password && (
-          <ul className="flex flex-wrap gap-1.5">
-            {PASSWORD_RULES.map((r) => (
-              <li key={r.id} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${passed.has(r.id) ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                {r.label}
-              </li>
-            ))}
-          </ul>
+        {!user && (
+          <p className="flex items-start gap-2.5 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-relaxed text-sky-900">
+            <MailCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" aria-hidden="true" />
+            <span>
+              Enviaremos un <strong>correo de bienvenida</strong> con un enlace para que la persona active su cuenta y cree su propia contraseña. La cuenta quedará
+              pendiente de activación hasta entonces.
+            </span>
+          </p>
         )}
         {!user && (
           <div>
             <p className="field-label">Roles</p>
             <div className="flex flex-wrap gap-2">
               {roles.data?.map((r) => (
-                <button key={r.codigo} type="button" aria-pressed={newRoles.includes(r.codigo)} onClick={() => setNewRoles((l) => (l.includes(r.codigo) ? l.filter((x) => x !== r.codigo) : [...l, r.codigo]))} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${newRoles.includes(r.codigo) ? 'bg-praxis-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
+                <button key={r.codigo} type="button" aria-pressed={newRoles.includes(r.codigo)} onClick={() => toggleRole(r.codigo)} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${newRoles.includes(r.codigo) ? 'bg-praxis-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
                   {r.nombre}
                 </button>
               ))}
             </div>
           </div>
         )}
-        <div>
-          <p className="field-label">Especialidades técnicas</p>
-          <div className="flex flex-wrap gap-2">
-            {especialidades.data?.filter((e) => e.activo).map((e) => (
-              <button key={e.codigo} type="button" aria-pressed={esp.includes(e.codigo)} onClick={() => setEsp((l) => (l.includes(e.codigo) ? l.filter((x) => x !== e.codigo) : [...l, e.codigo]))} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${esp.includes(e.codigo) ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                {e.nombre}
-              </button>
-            ))}
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">Necesarias para que un técnico pueda recibir incidencias de esa categoría.</p>
-        </div>
+        <SpecialtyPicker show={isTechnician} selected={esp} onChange={setEsp} invalid={tried && missingSpecialty} />
         <label className="field-label block">
           Motivo del cambio <span className="font-normal text-slate-400">(queda en auditoría)</span>
           <input className="field mt-1.5 font-normal" maxLength={500} value={f.motivo} onChange={(e) => setF({ ...f, motivo: e.target.value })} />
@@ -316,14 +387,90 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
   );
 }
 
+/** Restablecimiento administrativo: el usuario recibe un enlace; el administrador nunca ve contraseñas (HU-1.5). */
+function ResetPasswordDialog({ user, onClose, onDone }: { user: AdminUser; onClose: () => void; onDone: (m: string) => void }) {
+  const submit = useSubmit();
+  const send = async () => {
+    if (await submit.run(() => adminService.resetPassword(user.id))) {
+      onClose();
+      onDone('Se ha enviado el enlace de restablecimiento al correo del usuario.');
+    }
+  };
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      busy={submit.busy}
+      icon={<KeyRound className="h-5 w-5" />}
+      title="Restablecer contraseña"
+      description="Enviaremos al correo institucional del usuario un enlace de un solo uso para que defina una nueva contraseña."
+      footer={
+        <>
+          <button type="button" className="btn-secondary" onClick={onClose} disabled={submit.busy}>
+            Cancelar
+          </button>
+          <button type="button" className="btn-primary" onClick={send} disabled={submit.busy}>
+            {submit.busy ? 'Enviando…' : 'Enviar enlace'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <dl className="grid gap-x-4 gap-y-2 rounded-2xl border border-praxis-line p-4 text-sm sm:grid-cols-[auto_1fr]">
+          <dt className="text-xs font-semibold text-slate-500">Nombre</dt>
+          <dd className="font-semibold text-slate-900">{user.nombre}</dd>
+          <dt className="text-xs font-semibold text-slate-500">Correo</dt>
+          <dd className="break-all text-slate-700">{user.email}</dd>
+          <dt className="text-xs font-semibold text-slate-500">Rol</dt>
+          <dd className="flex flex-wrap gap-1">
+            {user.roles.map((r) => (
+              <ToneBadge key={r.codigo} tone={ROLE_TONES[r.codigo] ?? 'gris'} dot={false}>
+                {r.nombre}
+              </ToneBadge>
+            ))}
+          </dd>
+        </dl>
+        <p className="flex items-start gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-800">
+          <Lock className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          Por seguridad se cerrarán de inmediato todas las sesiones abiertas de este usuario. No verás ninguna contraseña en pantalla.
+        </p>
+        <FormError message={submit.error} />
+      </div>
+    </Modal>
+  );
+}
+
 function RolesDialog({ user, onClose, onDone }: { user: AdminUser; onClose: () => void; onDone: (m: string) => void }) {
   const roles = useApiQuery('admin:roles', adminService.roles, { blocking: false });
+  const initialEsp = user.especialidades.map((e) => e.codigo);
   const [selected, setSelected] = useState<RoleCode[]>(user.roles.map((r) => r.codigo));
+  const [esp, setEsp] = useState<string[]>(initialEsp);
   const [motivo, setMotivo] = useState('');
+  const [tried, setTried] = useState(false);
   const submit = useSubmit();
+  const isTechnician = selected.includes(TECNICO);
+  const missingSpecialty = isTechnician && esp.length === 0;
+
+  const toggle = (code: RoleCode) => {
+    const next = selected.includes(code) ? selected.filter((x) => x !== code) : [...selected, code];
+    setSelected(next);
+    if (!next.includes(TECNICO)) setEsp([]);
+  };
+
   const save = async () => {
+    setTried(true);
     if (selected.length === 0) return submit.setError('El usuario debe tener al menos un rol.');
-    if (await submit.run(() => adminService.setRoles(user.id, selected, motivo.trim() || undefined))) {
+    if (missingSpecialty) return submit.setError(SPECIALTY_REQUIRED);
+    const nextEsp = isTechnician ? esp : [];
+    const espChanged = nextEsp.length !== initialEsp.length || nextEsp.some((c) => !initialEsp.includes(c));
+    const reason = motivo.trim() || undefined;
+    const ok = await submit.run(async () => {
+      // Al quitar el rol técnico se limpian primero sus especialidades; al darlo, se asigna el rol primero.
+      if (espChanged && !isTechnician) await adminService.updateUser(user.id, { especialidades: [], motivo: reason });
+      await adminService.setRoles(user.id, selected, reason);
+      if (espChanged && isTechnician) await adminService.updateUser(user.id, { especialidades: nextEsp, motivo: reason });
+    });
+    if (ok) {
       onClose();
       onDone('Roles actualizados.');
     }
@@ -353,7 +500,7 @@ function RolesDialog({ user, onClose, onDone }: { user: AdminUser; onClose: () =
           const on = selected.includes(r.codigo);
           return (
             <label key={r.codigo} className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition ${on ? 'border-praxis-blue bg-sky-50' : 'border-praxis-line hover:border-slate-300'}`}>
-              <input type="checkbox" className="mt-1 h-4 w-4 accent-sky-600" checked={on} onChange={() => setSelected((l) => (on ? l.filter((x) => x !== r.codigo) : [...l, r.codigo]))} />
+              <input type="checkbox" className="mt-1 h-4 w-4 accent-sky-600" checked={on} onChange={() => toggle(r.codigo)} />
               <span>
                 <span className="flex items-center gap-2">
                   <span className="font-semibold text-slate-900">{r.nombre}</span>
@@ -364,6 +511,10 @@ function RolesDialog({ user, onClose, onDone }: { user: AdminUser; onClose: () =
             </label>
           );
         })}
+        <SpecialtyPicker show={isTechnician} selected={esp} onChange={setEsp} invalid={tried && missingSpecialty} />
+        {!isTechnician && initialEsp.length > 0 && (
+          <p className="text-xs text-amber-700">Al quitar el rol técnico se retirarán sus especialidades ({user.especialidades.map((e) => e.nombre).join(', ')}).</p>
+        )}
         <label className="field-label block">
           Motivo <span className="font-normal text-slate-400">(opcional)</span>
           <input className="field mt-1.5 font-normal" maxLength={500} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
