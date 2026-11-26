@@ -236,7 +236,7 @@ function CategoryForm({ cat, parent, especialidades, onClose, onDone }: { cat?: 
         <div className="flex items-center gap-2 text-xs">
           <span className="font-semibold text-slate-600">Riesgo base</span>
           {RISK.map(([v, l]) => (
-            <button key={v} type="button" aria-pressed={f.riesgo === v} onClick={() => setF({ ...f, riesgo: v as typeof f.riesgo })} className={`rounded-full px-3 py-1.5 font-semibold ${f.riesgo === v ? 'bg-praxis-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
+            <button key={v} type="button" aria-pressed={f.riesgo === v} onClick={() => setF({ ...f, riesgo: v as typeof f.riesgo })} className={`rounded-full px-3 py-1.5 font-semibold ${f.riesgo === v ? 'bg-praxis-blue text-white' : 'bg-slate-100 text-slate-600'}`}>
               {l}
             </button>
           ))}

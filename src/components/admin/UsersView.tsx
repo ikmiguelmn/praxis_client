@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Clock, KeyRound, Lock, MailCheck, Pencil, Search, Send, ShieldCheck, UserPlus, UserRoundCheck, UserRoundX, Users, Wrench } from 'lucide-react';
+import { Check, ChevronLeft,ChevronRight, Clock, KeyRound, Lock, Pencil, Search, Send, ShieldCheck, UserPlus, UserRoundCheck, UserRoundX, Users, Wrench } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
 import ReasonDialog from '@/components/ui/ReasonDialog';
@@ -15,6 +15,7 @@ import { useApiQuery } from '@/lib/useApiQuery';
 import { useModuleAccess, useSession } from '@/lib/session/SessionProvider';
 import { confirmAction } from '@/components/ui/ConfirmDialog';
 import { apiErrorMessage } from '@/lib/apiError';
+import { PASSWORD_RULES, POLICY_MESSAGE, meetsPolicy, passedRules } from '@/lib/passwordPolicy';
 import { formatRelative, initials } from '@/lib/format';
 import type { RoleCode } from '@/types/auth';
 import ReadOnlyNotice from './ReadOnlyNotice';
@@ -288,7 +289,8 @@ function SpecialtyPicker({ show, selected, onChange, invalid }: { show: boolean;
 
 function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose: () => void; onDone: (m: string) => void }) {
   const roles = useApiQuery('admin:roles', adminService.roles, { blocking: false });
-  const [f, setF] = useState({ nombre: user?.nombre ?? '', email: user?.email ?? '', telefono: user?.telefono ?? '', motivo: '' });
+  const [f, setF] = useState({ nombre: user?.nombre ?? '', email: user?.email ?? '', telefono: user?.telefono ?? '', password: '', motivo: '' });
+  const passed = passedRules(f.password);
   const [esp, setEsp] = useState<string[]>(user?.especialidades.map((e) => e.codigo) ?? []);
   const [newRoles, setNewRoles] = useState<RoleCode[]>(['R01']);
   const [tried, setTried] = useState(false);
@@ -307,17 +309,19 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
   const save = async () => {
     setTried(true);
     if (!f.nombre.trim() || !f.email.trim()) return submit.setError('Nombre y correo son obligatorios.');
+    if (!user && !f.password) return submit.setError('Escribe la contraseña del nuevo usuario.');
+    if (!user && !meetsPolicy(f.password)) return submit.setError(POLICY_MESSAGE);
     if (!user && newRoles.length === 0) return submit.setError('Asigna al menos un rol.');
     if (missingSpecialty) return submit.setError(SPECIALTY_REQUIRED);
     const especialidades = isTechnician ? esp : [];
     const ok = await submit.run(() =>
       user
         ? adminService.updateUser(user.id, { nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || null, especialidades, motivo: f.motivo.trim() || undefined })
-        : adminService.createUser({ nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || undefined, roles: newRoles, especialidades, enviar_bienvenida: true, motivo: f.motivo.trim() || undefined }),
+        : adminService.createUser({ nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || undefined, password: f.password, roles: newRoles, especialidades, motivo: f.motivo.trim() || undefined }),
     );
     if (ok) {
       onClose();
-      onDone(user ? 'Usuario actualizado.' : `Usuario creado. Enviamos el correo de bienvenida a ${f.email.trim()}.`);
+      onDone(user ? 'Usuario actualizado.' : 'Usuario creado. Ya puede iniciar sesión con la contraseña asignada.');
     }
   };
 
@@ -335,7 +339,7 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
             Cancelar
           </button>
           <button type="button" className="btn-primary" onClick={save} disabled={submit.busy}>
-            {submit.busy ? 'Guardando…' : user ? 'Guardar cambios' : 'Crear y enviar invitación'}
+            {submit.busy ? 'Guardando…' : user ? 'Guardar cambios' : 'Crear usuario'}
           </button>
         </>
       }
@@ -354,22 +358,32 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
             Teléfono <span className="font-normal text-slate-400">(opcional)</span>
             <input className="field mt-1.5 font-normal" maxLength={30} value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} />
           </label>
+          {!user && (
+            <label className="field-label">
+              <span className="flex items-center gap-1.5">
+                <KeyRound className="h-3.5 w-3.5" aria-hidden="true" />
+                Contraseña
+              </span>
+              <input type="password" autoComplete="new-password" className="field mt-1.5 font-normal" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+            </label>
+          )}
         </div>
         {!user && (
-          <p className="flex items-start gap-2.5 rounded-2xl border border-sky-100 bg-sky-50 px-4 py-3 text-xs leading-relaxed text-sky-900">
-            <MailCheck className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" aria-hidden="true" />
-            <span>
-              Enviaremos un <strong>correo de bienvenida</strong> con un enlace para que la persona active su cuenta y cree su propia contraseña. La cuenta quedará
-              pendiente de activación hasta entonces.
-            </span>
-          </p>
+          <ul className="flex flex-wrap gap-1.5" aria-label="Requisitos de la contraseña">
+            {PASSWORD_RULES.map((r) => (
+              <li key={r.id} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${passed.has(r.id) ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {r.label}
+              </li>
+            ))}
+          </ul>
         )}
         {!user && (
           <div>
             <p className="field-label">Roles</p>
             <div className="flex flex-wrap gap-2">
               {roles.data?.map((r) => (
-                <button key={r.codigo} type="button" aria-pressed={newRoles.includes(r.codigo)} onClick={() => toggleRole(r.codigo)} className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${newRoles.includes(r.codigo) ? 'bg-praxis-navy text-white' : 'bg-slate-100 text-slate-600'}`}>
+                <button key={r.codigo} type="button" aria-pressed={newRoles.includes(r.codigo)} onClick={() => toggleRole(r.codigo)} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${newRoles.includes(r.codigo) ? 'bg-praxis-blue text-white shadow-sm shadow-sky-900/30' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                  {newRoles.includes(r.codigo) && <Check className="h-3.5 w-3.5" aria-hidden="true" />}
                   {r.nombre}
                 </button>
               ))}

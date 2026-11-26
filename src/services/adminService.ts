@@ -82,8 +82,8 @@ export interface CategoriaPayload {
 export const adminService = {
   users: async (params: { q?: string; rol?: string; activo?: string; page?: number }): Promise<Paginated<AdminUser>> =>
     (await api.get<Paginated<AdminUser>>('/admin/usuarios', { params: { ...params, q: params.q || undefined, rol: params.rol || undefined, activo: params.activo || undefined, per_page: 15 } })).data,
-  /** Sin contraseña: el backend envía el correo de bienvenida para activar la cuenta (HU-1.7). */
-  createUser: async (body: { nombre: string; email: string; telefono?: string; roles: RoleCode[]; especialidades: string[]; enviar_bienvenida: true; motivo?: string }) =>
+  /** El administrador asigna la contraseña inicial; el backend la valida con la política institucional. */
+  createUser: async (body: { nombre: string; email: string; telefono?: string; password: string; roles: RoleCode[]; especialidades: string[]; motivo?: string }) =>
     (await api.post<{ data: AdminUser }>('/admin/usuarios', body)).data.data,
   updateUser: async (id: number, body: { nombre?: string; email?: string; telefono?: string | null; especialidades?: string[]; motivo?: string }) =>
     (await api.put<{ data: AdminUser }>(`/admin/usuarios/${id}`, body)).data.data,
