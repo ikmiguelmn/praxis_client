@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { motion } from 'motion/react';
 import { Check, ChevronLeft,ChevronRight, Clock, KeyRound, Lock, Pencil, Search, Send, ShieldCheck, UserPlus, UserRoundCheck, UserRoundX, Users, Wrench } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import Modal from '@/components/ui/Modal';
@@ -244,25 +244,22 @@ function IconBtn({ label, icon, onClick }: { label: string; icon: React.ReactNod
   );
 }
 
-/** Selector de especialidades; solo aparece cuando el usuario tendrá el rol Técnico de mantenimiento (HU-11.5). */
-function SpecialtyPicker({ show, selected, onChange, invalid }: { show: boolean; selected: string[]; onChange: (next: string[]) => void; invalid?: boolean }) {
+/** Selector de especialidades; siempre visible y obligatorio cuando el usuario tiene el rol Técnico de mantenimiento (HU-11.5). */
+function SpecialtyPicker({ required, selected, onChange, invalid }: { required: boolean; selected: string[]; onChange: (next: string[]) => void; invalid?: boolean }) {
   const especialidades = useApiQuery('admin:especialidades', adminService.especialidades, { blocking: false });
   return (
-    <AnimatePresence initial={false}>
-      {show && (
-        <motion.div
-          key="especialidades"
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          className="overflow-hidden"
-        >
           <fieldset className={`rounded-2xl border p-4 ${invalid ? 'border-red-300 bg-red-50/40' : 'border-praxis-line'}`}>
             <legend className="field-label flex items-center gap-1.5 px-1">
               <Wrench className="h-3.5 w-3.5" aria-hidden="true" />
-              Especialidades técnicas <span className="text-red-600" aria-hidden="true">*</span>
-              <span className="sr-only">(obligatorio)</span>
+              Especialidades técnicas
+              {required ? (
+                <>
+                  <span className="text-red-600" aria-hidden="true">*</span>
+                  <span className="sr-only">(obligatorio)</span>
+                </>
+              ) : (
+                <span className="font-normal text-slate-400">(opcional)</span>
+              )}
             </legend>
             <div className="flex flex-wrap gap-2">
               {especialidades.data?.filter((e) => e.activo).map((e) => (
@@ -278,12 +275,9 @@ function SpecialtyPicker({ show, selected, onChange, invalid }: { show: boolean;
               ))}
             </div>
             <p className={`mt-2 text-[11px] ${invalid ? 'font-semibold text-red-600' : 'text-slate-400'}`}>
-              {invalid ? SPECIALTY_REQUIRED : 'Definen qué incidencias puede recibir el técnico. Elige al menos una.'}
+              {invalid ? SPECIALTY_REQUIRED : required ? 'Definen qué incidencias puede recibir el técnico. Elige al menos una.' : 'Definen qué incidencias puede recibir si también es técnico.'}
             </p>
           </fieldset>
-        </motion.div>
-      )}
-    </AnimatePresence>
   );
 }
 
@@ -302,8 +296,6 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
   const toggleRole = (code: RoleCode) => {
     const next = newRoles.includes(code) ? newRoles.filter((x) => x !== code) : [...newRoles, code];
     setNewRoles(next);
-    // Sin el rol técnico no quedan especialidades residuales.
-    if (!next.includes(TECNICO)) setEsp([]);
   };
 
   const save = async () => {
@@ -313,7 +305,7 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
     if (!user && !meetsPolicy(f.password)) return submit.setError(POLICY_MESSAGE);
     if (!user && newRoles.length === 0) return submit.setError('Asigna al menos un rol.');
     if (missingSpecialty) return submit.setError(SPECIALTY_REQUIRED);
-    const especialidades = isTechnician ? esp : [];
+    const especialidades = esp;
     const ok = await submit.run(() =>
       user
         ? adminService.updateUser(user.id, { nombre: f.nombre.trim(), email: f.email.trim(), telefono: f.telefono.trim() || null, especialidades, motivo: f.motivo.trim() || undefined })
@@ -390,7 +382,7 @@ function UserDialog({ user, onClose, onDone }: { user: AdminUser | null; onClose
             </div>
           </div>
         )}
-        <SpecialtyPicker show={isTechnician} selected={esp} onChange={setEsp} invalid={tried && missingSpecialty} />
+        <SpecialtyPicker required={isTechnician} selected={esp} onChange={setEsp} invalid={tried && missingSpecialty} />
         <label className="field-label block">
           Motivo del cambio <span className="font-normal text-slate-400">(queda en auditoría)</span>
           <input className="field mt-1.5 font-normal" maxLength={500} value={f.motivo} onChange={(e) => setF({ ...f, motivo: e.target.value })} />
@@ -468,21 +460,17 @@ function RolesDialog({ user, onClose, onDone }: { user: AdminUser; onClose: () =
   const toggle = (code: RoleCode) => {
     const next = selected.includes(code) ? selected.filter((x) => x !== code) : [...selected, code];
     setSelected(next);
-    if (!next.includes(TECNICO)) setEsp([]);
   };
 
   const save = async () => {
     setTried(true);
     if (selected.length === 0) return submit.setError('El usuario debe tener al menos un rol.');
     if (missingSpecialty) return submit.setError(SPECIALTY_REQUIRED);
-    const nextEsp = isTechnician ? esp : [];
-    const espChanged = nextEsp.length !== initialEsp.length || nextEsp.some((c) => !initialEsp.includes(c));
+    const espChanged = esp.length !== initialEsp.length || esp.some((c) => !initialEsp.includes(c));
     const reason = motivo.trim() || undefined;
     const ok = await submit.run(async () => {
-      // Al quitar el rol técnico se limpian primero sus especialidades; al darlo, se asigna el rol primero.
-      if (espChanged && !isTechnician) await adminService.updateUser(user.id, { especialidades: [], motivo: reason });
       await adminService.setRoles(user.id, selected, reason);
-      if (espChanged && isTechnician) await adminService.updateUser(user.id, { especialidades: nextEsp, motivo: reason });
+      if (espChanged) await adminService.updateUser(user.id, { especialidades: esp, motivo: reason });
     });
     if (ok) {
       onClose();
@@ -525,10 +513,7 @@ function RolesDialog({ user, onClose, onDone }: { user: AdminUser; onClose: () =
             </label>
           );
         })}
-        <SpecialtyPicker show={isTechnician} selected={esp} onChange={setEsp} invalid={tried && missingSpecialty} />
-        {!isTechnician && initialEsp.length > 0 && (
-          <p className="text-xs text-amber-700">Al quitar el rol técnico se retirarán sus especialidades ({user.especialidades.map((e) => e.nombre).join(', ')}).</p>
-        )}
+        <SpecialtyPicker required={isTechnician} selected={esp} onChange={setEsp} invalid={tried && missingSpecialty} />
         <label className="field-label block">
           Motivo <span className="font-normal text-slate-400">(opcional)</span>
           <input className="field mt-1.5 font-normal" maxLength={500} value={motivo} onChange={(e) => setMotivo(e.target.value)} />
